@@ -1,5 +1,5 @@
 module.exports = class CreateReplicaCommand extends BaseCommand {
-    constructor(rpartition) {
+    constructor(partition) {
         super(partition);
     }
 }

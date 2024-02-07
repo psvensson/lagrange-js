@@ -1,5 +1,3 @@
-
-const uuids = require('uuid')
 const CommunicationCentral = require('./communication/CommunicationCentral')
 const Cache = require('./Cache')
 const NodeInfo = require('./NodeInfo')
@@ -22,14 +20,13 @@ const InitialConnectCommand = require('./commands/InitialConnectCommand')
  * 
  */
 
-
 module.exports = class NodeManager {
 
     constructor(ipAddress, peers) {
         this.peers = peers
         this.initialKnownPeers = 1
         this.cache = new Cache()
-        this.communicationCentral = new CommunicationCentral(this.cache)
+        this.communicationCentral = new CommunicationCentral(ipAddress)
         
         this.createNodeInfo()
         this.openCommandSocket()

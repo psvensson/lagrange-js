@@ -13,9 +13,14 @@ module.exports = class WsTransport extends BaseTransport {
     super(ipAddress, receiveCallback);
     io.on('connection', (socket) => {
       console.log('WsTransport::connection', socket.id)
-      socket.on('command', (data) => {
-        console.log('WsTransport::command', data)
-        this.receiveCallback(data)
+      socket.on('command', (command) => {
+        console.log('WsTransport::command', command)
+        const result = this.receiveCallback(command.data)
+        socket.emit('command', {
+          command: 'Reply',
+          requestId: command.requestId,
+          data: result
+        })
       })
     })
   }
@@ -33,15 +38,21 @@ module.exports = class WsTransport extends BaseTransport {
     return ws
 }
 
-  send(url,  data) {
-    console.log('WsTransport::send', url, data)
+  send(url, command) {
+    console.log('WsTransport::send', url, command)
     if (!clientCache[url]) {
       clientCache[url] = this.createWebSocketClient(url)
+    }    
+    const data = {
+      command: command.constructor.name,
+      requestId: command.requestId,
+      data: command.data
     }
-    clientCache[url].send(data)
+    clientCache[url].emit('command', data)
   }
 
   close() {
     console.log('WsTransport::close (unimplemented)')
+    io.close()
   }
 }

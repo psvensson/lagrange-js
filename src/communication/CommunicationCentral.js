@@ -1,11 +1,12 @@
+const uuids = require('uuid')
 const WsTransport = require('./WsTransport');
-
 
 module.exports = class CommunicationCentral {
     constructor(ipAddress) {
         this.ipAddress = ipAddress;
         this.transportsCache = {};
         this.commandCallbacks = {};
+        this.outstandingRequests = {}
         //
         this.transportsCache['ws'] = new WsTransport(this.ipAddress, this.handleMessage);
     }
@@ -26,15 +27,9 @@ module.exports = class CommunicationCentral {
     handleMessage(message) {
         console.log('CommunicationCentral: Received message', message);
         console.dir(message)
-        console.log('CommunicationCentral: Checking if command '+message.command+' is registered')
-        if (this.commandCallbacks[message.command]) {
-            console.log('CommunicationCentral: Executing callback for command', message.command);
-            console.dir(message)            
+        message.command === 'Reply' ? 
+            this.outstandingRequests[message.requestId].resolve(message.data) :
             this.commandCallbacks[message.command](message.data);
-        } else {
-            console.log('CommunicationCentral: No callback registered for command', message.command);
-        }
-
     }
 
     getTransportFromUrl(url) {
@@ -45,7 +40,19 @@ module.exports = class CommunicationCentral {
         return this.transportsCache[protocol];
     }
 
-    async send(url, command) {
-        this.getTransportFromUrl(url).send(url, command.stringify());
+    send(url, command) {
+        const requestId = uuids.v4();
+        command.requestId = requestId
+        command.command = command.constructor.name
+        this.getTransportFromUrl(url).send(url, command);
+        const promise = new Promise((resolve, reject) => {
+            this.outstandingRequests[requestId] = {
+                resolve,
+                reject
+            };
+        });
+        return promise
     }
+
+
 }

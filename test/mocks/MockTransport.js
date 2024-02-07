@@ -15,7 +15,7 @@ module.exports = class WsTransport extends BaseTransport {
 
   send(url, data) {
     console.log('MockTransport::send', url, data)    
-    this.receiveCallback(JSON.parse(data).data)
+    this.receiveCallback(data)
   }
 
   close() {

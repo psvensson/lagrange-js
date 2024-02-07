@@ -22,6 +22,7 @@ describe('CommunicationCentral', () => {
         communicationCentral.registerTransport('ws', wsTransport);
         const addresses = communicationCentral.getAddresses();
         expect(addresses).toContain(wsTransport.getAddress());
+        wsTransport.close();
     });
 
     it('should be able to register a command callback', () => {
@@ -54,12 +55,15 @@ describe('CommunicationCentral', () => {
 
     it('should be able to send a message', async () => {
         const communicationCentral = new CommunicationCentral('127.0.0.1');
-        const callback = jest.fn() 
+        const callback = jest.fn((data) => console.log('callback', data)) 
         const mockTransport = new MockTransport('127.0.0.1', callback);
         const mockTransportSend = jest.spyOn(mockTransport, 'send');
         communicationCentral.registerTransport('mock', mockTransport);
         const command = new MockCommand( 'test data');
-        await communicationCentral.send('mock://127.0.0.1', command);
-        expect(mockTransportSend).toHaveBeenCalledWith('mock://127.0.0.1', "{\"command\":\"MockCommand\",\"data\":\"test data\"}" );
+        communicationCentral.send('mock://127.0.0.1', command);
+        expect(mockTransportSend).toHaveBeenCalledWith('mock://127.0.0.1', expect.objectContaining({
+            command: "MockCommand",
+            data: "test data"
+          }) );
     });
 });
