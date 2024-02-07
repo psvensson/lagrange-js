@@ -1,4 +1,4 @@
-const uuids = require('uuid')
+
 const WsTransport = require('./WsTransport');
 
 module.exports = class CommunicationCentral {
@@ -40,13 +40,10 @@ module.exports = class CommunicationCentral {
         return this.transportsCache[protocol];
     }
 
-    send(url, command) {
-        const requestId = uuids.v4();
-        command.requestId = requestId
-        command.command = command.constructor.name
+    send(url, command) {        
         this.getTransportFromUrl(url).send(url, command);
         const promise = new Promise((resolve, reject) => {
-            this.outstandingRequests[requestId] = {
+            this.outstandingRequests[command.requestId] = {
                 resolve,
                 reject
             };

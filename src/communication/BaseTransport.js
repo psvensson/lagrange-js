@@ -6,7 +6,6 @@ module.exports = class BaseTransport {
         this.receiveCallback = receiveCallback;
     }
 
-
     async send(url, command) {
         console.log('*** BaseTransport.send NOT OVERRIDDEN')
     }

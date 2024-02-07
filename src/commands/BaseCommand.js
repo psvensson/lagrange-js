@@ -1,12 +1,17 @@
+const uuids = require('uuid')
+const makeEnums = require('../DoNotCreateAFileCalledUtils').makeEnums
 
-//TODO: make this class (renamed) just generate command objects instead and ditch the subclasses
-module.exports = class BaseCommand {
-    constructor(data) {
-       this.data = data;
-    }
+const COMMANDS = makeEnums(['MOCK', 'REPLY', 'CREATE_REPLICA', 'DELETE_REPLICA', 'INITIAL_CONNECT', 'REPLY'])
 
-    stringify(extra) {
-        return JSON.stringify({command: this.constructor.name, data: this.data, ...extra});
+module.exports = {
+
+    createCommand: (commandName, data) => {
+        return {
+            requestId: uuids.v4(),
+            commandName: commandName,
+            data: data
+        }
     }
-    
+    ,
+    COMMANDS
 }

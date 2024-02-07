@@ -1,6 +1,6 @@
 const makeEnums = require('../DoNotCreateAFileCalledUtils').makeEnums
 
-const NODE_STATES = makeEnums(['CONNECTING', 'CONNECTED', 'STOPPING', 'STOPPED', 'INITIALIZE_START', 'INITIALIZE_FINISH'])
+const NODE_STATE = makeEnums(['CONNECTING', 'CONNECTED', 'STOPPING', 'STOPPED', 'INITIALIZE_START', 'INITIALIZE_FINISH'])
 
 module.exports = class nodeInfo {
     constructor(nodeInfo) {

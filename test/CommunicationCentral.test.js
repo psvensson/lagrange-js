@@ -1,6 +1,6 @@
 const CommunicationCentral = require('../src/communication/CommunicationCentral');
 const WsTransport = require('../src/communication/WsTransport');
-const MockCommand = require('./mocks/MockCommand');
+const {COMMANDS, createCommand} = require('../src/commands/BaseCommand');
 const MockTransport = require('./mocks/MockTransport');
 
 describe('CommunicationCentral', () => {
@@ -59,10 +59,10 @@ describe('CommunicationCentral', () => {
         const mockTransport = new MockTransport('127.0.0.1', callback);
         const mockTransportSend = jest.spyOn(mockTransport, 'send');
         communicationCentral.registerTransport('mock', mockTransport);
-        const command = new MockCommand( 'test data');
+        const command = createCommand(COMMANDS.MOCK, 'test data');
         communicationCentral.send('mock://127.0.0.1', command);
         expect(mockTransportSend).toHaveBeenCalledWith('mock://127.0.0.1', expect.objectContaining({
-            command: "MockCommand",
+            commandName: COMMANDS.MOCK,
             data: "test data"
           }) );
     });
