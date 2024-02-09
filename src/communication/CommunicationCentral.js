@@ -6,8 +6,9 @@ module.exports = class CommunicationCentral {
         this.outstandingRequests = {}        
     }
 
-    registerTransport(protocol, transport) {
+    registerTransport(transport) {
         transport.registerCallback(this.handleCommand.bind(this));
+        const protocol = transport.getProtocol();
         this.transportsCache[protocol] = transport;
     }
 
@@ -34,7 +35,7 @@ module.exports = class CommunicationCentral {
     getTransportFromUrl(url) {
         const protocol = url.split(':')[0];
         if (!this.transportsCache[protocol]) {
-            throw new Error('CommunicationCentral: Unknown transport');
+            throw new Error('CommunicationCentral: Unknown transport: "'+protocol+'"');
         }
         return this.transportsCache[protocol];
     }

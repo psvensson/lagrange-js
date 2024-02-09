@@ -4,7 +4,6 @@ const WebSocket = require('ws')
 const COMMAND_SOCKET_MOCK_PORT = 987654321
 
 
-
 module.exports = class MockTransport extends BaseTransport {
   static localNodes = {}
 
@@ -15,13 +14,19 @@ module.exports = class MockTransport extends BaseTransport {
       MockTransport.localNodes[extractedAddress[0]] = this
     }
   }
+
   getAddress() {
     return `mock://${this.ipAddress}:${COMMAND_SOCKET_MOCK_PORT}`
   }
 
+  getProtocol() {
+    return 'mock'
+  }
+
   send(url, data) {
     console.log('MockTransport::send', url, data)   
-    const extractedAddress = url.match(/\d+\.\d+\.\d+\.\d+/) 
+    const extractedAddress = url.match(/\d+\.\d+\.\d+\.\d+/)
+    console.log('xtractedAddress: ', extractedAddress[0])
     MockTransport.localNodes[extractedAddress[0]].receiveCallback(data)
   }
 

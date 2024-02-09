@@ -11,6 +11,10 @@ class HttpTransport {
     this.app.listen(port);
   }
 
+  getProtocol() {
+    return 'http';
+  } 
+
   handleRequest(req, res) {
     this.receiveCallback(req.body);
     res.sendStatus(200);

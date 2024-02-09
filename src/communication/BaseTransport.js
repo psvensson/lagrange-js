@@ -5,6 +5,10 @@ module.exports = class BaseTransport {
         this.address   = address;
     }
 
+    getProtocol() {
+        console.log('*** BaseTransport.getProtocol NOT OVERRIDDEN')
+    }
+
     registerCallback(callback) {
         this.receiveCallback = callback;
     }

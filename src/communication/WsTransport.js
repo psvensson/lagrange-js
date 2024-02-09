@@ -29,6 +29,10 @@ module.exports = class WsTransport extends BaseTransport {
     return `ws://${this.ipAddress}:${COMMAND_SOCKET_WS_PORT}`
   }
 
+  getProtocol() {
+    return 'ws'
+  }
+
   createWebSocketClient(url) {        
     const ws = new ioClient(url)    
     ws.on('message', function incoming(data) {

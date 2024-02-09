@@ -1,7 +1,7 @@
 const uuids = require('uuid')
 const makeEnums = require('../DoNotCreateAFileCalledUtils').makeEnums
 
-const COMMANDS = makeEnums(['MOCK', 'REPLY', 'CREATE_REPLICA', 'DELETE_REPLICA', 'INITIAL_CONNECT', 'REPLY'])
+const COMMANDS = makeEnums(['MOCK', 'INITIAL_CONNECT', 'REPLY', 'CREATE_REPLICA', 'DELETE_REPLICA', 'INITIAL_CONNECT', 'REPLY'])
 
 module.exports = {
 

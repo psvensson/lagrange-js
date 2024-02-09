@@ -1,8 +1,8 @@
 const CommunicationCentral = require('./communication/CommunicationCentral')
 const WsTransport = require('./communication/WsTransport')
 const Cache = require('./Cache')
-const NodeInfo = require('./NodeInfo')
-const InitialConnectCommand = require('./commands/InitialConnectCommand')
+const NodeInfo = require('./data/NodeInfo')
+const {COMMANDS, createCommand} = require('./commands/BaseCommand')
 
 /**
  * When starting a node, it will try to connect to the peers in the list.
@@ -23,20 +23,25 @@ const InitialConnectCommand = require('./commands/InitialConnectCommand')
 
 module.exports = class NodeManager {
 
-    constructor(ipAddress, peers) {
+    constructor(peers) {
         this.peers = peers
         this.initialKnownPeers = 1
         this.cache = new Cache()
-        this.openCommunication(ipAddress)
+        this.openCommunication()
         this.createNodeInfo()
         this.connectToInitialPeers(peers).then((result) => [
             console.log('connectToPeers result:', result)
         ])
     }
 
-    openCommunication(ipAddress) {
-        this.communicationCentral = new CommunicationCentral(this.cache)
-        const transport = new WsTransport(ipAddress)
+    openCommunication(transports = []) {
+        this.communicationCentral = new CommunicationCentral()        
+        transports.forEach(transport => {
+            this.registerTransport(transport)
+        })
+    }
+
+    registerTransport(transport) {
         this.communicationCentral.registerTransport(transport)
     }
 
@@ -60,7 +65,7 @@ module.exports = class NodeManager {
 
     connectToPeer(peer) {
         console.log('connectToPeer', peer)
-        const command = new InitialConnectCommand(this.nodeInfo)
+        const command = createCommand(COMMANDS.INITIAL_CONNECT, this.nodeInfo)
         return this.communicationCentral.send(command, peer)
     }
 
