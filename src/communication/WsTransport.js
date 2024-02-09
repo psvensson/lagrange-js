@@ -9,8 +9,8 @@ const ioClient = require('socket.io-client').io
 
 
 module.exports = class WsTransport extends BaseTransport {
-  constructor(ipAddress, receiveCallback) {
-    super(ipAddress, receiveCallback);
+  constructor(address) {
+    super(address);
     io.on('connection', (socket) => {
       console.log('WsTransport::connection', socket.id)
       socket.on('command', (command) => {

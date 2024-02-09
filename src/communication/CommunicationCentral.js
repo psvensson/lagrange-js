@@ -1,17 +1,13 @@
-
-const WsTransport = require('./WsTransport');
-
+const {COMMANDS} = require('../commands/BaseCommand');
 module.exports = class CommunicationCentral {
-    constructor(ipAddress) {
-        this.ipAddress = ipAddress;
+    constructor() {
         this.transportsCache = {};
         this.commandCallbacks = {};
-        this.outstandingRequests = {}
-        //
-        this.transportsCache['ws'] = new WsTransport(this.ipAddress, this.handleMessage);
+        this.outstandingRequests = {}        
     }
 
     registerTransport(protocol, transport) {
+        transport.registerCallback(this.handleMessage.bind(this));
         this.transportsCache[protocol] = transport;
     }
 
@@ -27,9 +23,12 @@ module.exports = class CommunicationCentral {
     handleMessage(message) {
         console.log('CommunicationCentral: Received message', message);
         console.dir(message)
-        message.command === 'Reply' ? 
+        console.log('--- registered command callbacks')
+        console.dir(this.commandCallbacks)
+        console.log('---')
+        message.commandName === COMMANDS.REPLY ? 
             this.outstandingRequests[message.requestId].resolve(message.data) :
-            this.commandCallbacks[message.command](message.data);
+            this.commandCallbacks[message.commandName](message.data);
     }
 
     getTransportFromUrl(url) {

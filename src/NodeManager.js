@@ -1,4 +1,5 @@
 const CommunicationCentral = require('./communication/CommunicationCentral')
+const WsTransport = require('./communication/WsTransport')
 const Cache = require('./Cache')
 const NodeInfo = require('./NodeInfo')
 const InitialConnectCommand = require('./commands/InitialConnectCommand')
@@ -26,34 +27,47 @@ module.exports = class NodeManager {
         this.peers = peers
         this.initialKnownPeers = 1
         this.cache = new Cache()
-        this.communicationCentral = new CommunicationCentral(ipAddress)
-        
+        this.openCommunication(ipAddress)
         this.createNodeInfo()
-        this.openCommandSocket()
-        this.createWebSocketClient()
-        this.connectToInitialPeers(peers).then((result)=>[
+        this.connectToInitialPeers(peers).then((result) => [
             console.log('connectToPeers result:', result)
         ])
     }
 
-    createNodeInfo(){
+    openCommunication(ipAddress) {
+        this.communicationCentral = new CommunicationCentral(this.cache)
+        const transport = new WsTransport(ipAddress)
+        this.communicationCentral.registerTransport(transport)
+    }
+
+    createNodeInfo() {
         this.nodeInfo = new NodeInfo({
             addresses: this.communicationCentral.getAddresses()
-        }) 
+        })
         this.cache.setNodeInfo(this.nodeInfo)
     }
 
-    async connectToInitialPeers(peers) {        
+    async connectToInitialPeers(peers) {
         console.log('connectToInitialPeers', peers)
-        peers.forEach((peer)=>{
-            this.connectToPeer(peer)
-        }) 
+        for (let peer of peers) {
+            await this.connectToPeer(peer)
+            this.initialKnownPeers++
+            if (this.initialKnownPeers > 2) {
+                this.initializeSystem()
+            }
+        }
     }
 
     connectToPeer(peer) {
         console.log('connectToPeer', peer)
         const command = new InitialConnectCommand(this.nodeInfo)
-        this.communicationCentral.send(command, peer)
+        return this.communicationCentral.send(command, peer)
     }
+
+    initializeSystem() {
+        console.log('initializeSystem')
+    }
+
     
+
 }

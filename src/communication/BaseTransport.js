@@ -1,9 +1,12 @@
 
 
 module.exports = class BaseTransport {
-    constructor(ipAddress, receiveCallback) {
-        this.ipAddress   = ipAddress;
-        this.receiveCallback = receiveCallback;
+    constructor(address) {
+        this.address   = address;
+    }
+
+    registerCallback(callback) {
+        this.receiveCallback = callback;
     }
 
     async send(url, command) {

@@ -3,7 +3,8 @@ const express = require('express');
 const axios = require('axios');
 
 class HttpTransport {
-  constructor(port = 3000) {
+  constructor(address, port = 3000) {
+    super(address)
     this.app = express();
     this.app.use(express.json());
     this.app.post('/', this.handleRequest.bind(this));
@@ -11,7 +12,7 @@ class HttpTransport {
   }
 
   handleRequest(req, res) {
-    this.onMessage(req.body);
+    this.receiveCallback(req.body);
     res.sendStatus(200);
   }
 
@@ -23,9 +24,6 @@ class HttpTransport {
     }
   }
 
-  setOnMessage(callback) {
-    this.onMessage = callback;
-  }
 }
 
 module.exports = HttpTransport;
