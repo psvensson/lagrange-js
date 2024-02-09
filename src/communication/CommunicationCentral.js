@@ -7,7 +7,7 @@ module.exports = class CommunicationCentral {
     }
 
     registerTransport(protocol, transport) {
-        transport.registerCallback(this.handleMessage.bind(this));
+        transport.registerCallback(this.handleCommand.bind(this));
         this.transportsCache[protocol] = transport;
     }
 
@@ -20,15 +20,15 @@ module.exports = class CommunicationCentral {
         this.commandCallbacks[command] = callback;
     }
 
-    handleMessage(message) {
-        console.log('CommunicationCentral: Received message', message);
-        console.dir(message)
-        console.log('--- registered command callbacks')
-        console.dir(this.commandCallbacks)
-        console.log('---')
-        message.commandName === COMMANDS.REPLY ? 
-            this.outstandingRequests[message.requestId].resolve(message.data) :
-            this.commandCallbacks[message.commandName](message.data);
+    handleCommand(command) {
+        console.log('CommunicationCentral: Received command', command);
+        console.dir(command)
+        //console.log('--- registered command callbacks')
+        //console.dir(this.commandCallbacks)
+        //console.log('---')
+        command.commandName === COMMANDS.REPLY ? 
+            this.outstandingRequests[command.requestId].resolve(command.data) :
+            this.commandCallbacks[command.commandName](command.data);
     }
 
     getTransportFromUrl(url) {
