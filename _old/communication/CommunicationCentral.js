@@ -1,4 +1,4 @@
-const {COMMANDS} = require('../commands/BaseCommand');
+const {COMMANDS} = require('../../src/commands/BaseCommand');
 module.exports = class CommunicationCentral {
     constructor() {
         this.transportsCache = {};

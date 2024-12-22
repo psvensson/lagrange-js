@@ -42,17 +42,12 @@ module.exports = class WsTransport extends BaseTransport {
     return ws
 }
 
-  send(url, command) {
-    console.log('WsTransport::send', url, command)
+  send(message, destination) {
+    console.log('WsTransport::send', message, destination)
     if (!clientCache[url]) {
       clientCache[url] = this.createWebSocketClient(url)
-    }    
-    const data = {
-      command: command.constructor.name,
-      requestId: command.requestId,
-      data: command.data
-    }
-    clientCache[url].emit('command', data)
+    }        
+    clientCache[url].emit('command', message)
   }
 
   close() {

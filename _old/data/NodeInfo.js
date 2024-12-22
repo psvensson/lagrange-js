@@ -1,6 +1,6 @@
 const BaseData = require('./BaseData')
 
-const makeEnums = require('../DoNotCreateAFileCalledUtils').makeEnums
+const makeEnums = require('../../src/DoNotCreateAFileCalledUtils').makeEnums
 
 const NODE_STATE = makeEnums(['CONNECTING', 'CONNECTED', 'STOPPING', 'STOPPED', 'INITIALIZE_START', 'INITIALIZE_FINISH'])
 

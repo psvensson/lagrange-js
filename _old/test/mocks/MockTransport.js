@@ -1,4 +1,4 @@
-const BaseTransport = require("../../src/communication/BaseTransport");
+const BaseTransport = require("../../_old/communication/BaseTransport");
 const WebSocket = require('ws')
 
 const COMMAND_SOCKET_MOCK_PORT = 987654321

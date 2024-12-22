@@ -1,5 +1,5 @@
-const CommunicationCentral = require('../src/communication/CommunicationCentral');
-const WsTransport = require('../src/communication/WsTransport');
+const CommunicationCentral = require('../_old/communication/CommunicationCentral');
+const WsTransport = require('../_old/communication/WsTransport');
 const {COMMANDS, createCommand} = require('../src/commands/BaseCommand');
 const MockTransport = require('./mocks/MockTransport');
 
@@ -72,8 +72,6 @@ describe('CommunicationCentral', () => {
         const callback2 = jest.fn((data) => console.log('mock 2 transport callback', data)) 
         const mockTransport1 = new MockTransport('127.0.0.1', callback1);
         const mockTransport2 = new MockTransport('127.0.0.2', callback2);
-        const mockTransportSend1 = jest.spyOn(mockTransport1, 'send');
-        const mockTransportSend2 = jest.spyOn(mockTransport2, 'send');
         communicationCentral.registerTransport(mockTransport1);
         communicationCentral.registerTransport(mockTransport2);
         const command = createCommand(COMMANDS.MOCK, 'test data');

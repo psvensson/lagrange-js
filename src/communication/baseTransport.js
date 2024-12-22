@@ -1,9 +1,9 @@
 
-
 module.exports = class BaseTransport {
     constructor(address) {
         this.address   = address;
     }
+  
 
     getProtocol() {
         console.log('*** BaseTransport.getProtocol NOT OVERRIDDEN')
@@ -13,7 +13,7 @@ module.exports = class BaseTransport {
         this.receiveCallback = callback;
     }
 
-    async send(url, command) {
+    async send(message, destination) {
         console.log('*** BaseTransport.send NOT OVERRIDDEN')
     }
     
