@@ -1,17 +1,13 @@
 const BaseTransport = require("./BaseTransport");
 
-const COMMAND_SOCKET_WS_PORT = 3344
-
 const clientCache = {}
-
-const io = require('socket.io')(COMMAND_SOCKET_WS_PORT)
-const ioClient = require('socket.io-client').io
-
-
 module.exports = class WsTransport extends BaseTransport {
+
   constructor(address) {
     super(address);
-    io.on('connection', (socket) => {
+    this.io = require('socket.io')(COMMAND_SOCKET_WS_PORT)
+    this.ioClient = require('socket.io-client').io
+    this.io.on('connection', (socket) => {
       console.log('WsTransport::connection', socket.id)
       socket.on('command', (command) => {
         console.log('WsTransport::command', command)
@@ -24,17 +20,13 @@ module.exports = class WsTransport extends BaseTransport {
       })
     })
   }
-
-  getAddress() {
-    return `ws://${this.ipAddress}:${COMMAND_SOCKET_WS_PORT}`
-  }
-
+  
   getProtocol() {
     return 'ws'
   }
 
   createWebSocketClient(url) {        
-    const ws = new ioClient(url)    
+    const ws = new this.ioClient(url)    
     ws.on('message', function incoming(data) {
         console.log(data)
         this.receiveCallback(JSON.parse(data).data)
@@ -42,7 +34,7 @@ module.exports = class WsTransport extends BaseTransport {
     return ws
 }
 
-  send(message, destination) {
+  transportMessage(message, destination) {
     console.log('WsTransport::send', message, destination)
     if (!clientCache[url]) {
       clientCache[url] = this.createWebSocketClient(url)
@@ -52,6 +44,6 @@ module.exports = class WsTransport extends BaseTransport {
 
   close() {
     console.log('WsTransport::close (unimplemented)')
-    io.close()
+    this.io.close()
   }
 }

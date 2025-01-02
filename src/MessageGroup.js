@@ -1,17 +1,23 @@
 const RaftGroup = require("./RaftGroup");
 
-
+// TODO: Create superclass for this class so it can be mocked
 module.exports = class MessageGroup extends RaftGroup{
 
     houseKeepingCallback = null;
 
-    constructor(raftGroup) {
-        super(raftGroup);
+    constructor(raftGroupImplementation) {
+        super(raftGroupImplementation);
         // Create rqlite table for messages, to hold messageId, messageName, serialized context (if any), name of callback to invoke, creation time, and number of resends
         const sqlStatement = "CREATE TABLE IF NOT EXISTS messages (messageId TEXT PRIMARY KEY, messageName TEXT, context TEXT, callback TEXT, creationTime TEXT, resends INTEGER)";
-        this.raftGroup.executeCommand(sqlStatement);
+        this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
+    // Expose raftgroup implementation to system caches to implement their own tables and access needed
+    getRaftGroupImplementation(){
+        return this.raftGroupImplementation;
+    }
+
+    
     /* Message format:
     {
         requestId: uuids.v4(),
@@ -19,12 +25,13 @@ module.exports = class MessageGroup extends RaftGroup{
         data: data
     }*/
     
+    // The messages are sent for two reasons; 1) To have the current leader be able toresend them and 2) to let any node in the message raft group be able to load context and execute handler code when an ack is received
     saveMessage(message, context, callbackName) {
         // Save message in rqlite table
         const creationTime = new Date().toISOString();
         const resends = 0;
         const sqlStatement = `INSERT INTO messages (messageId, messageName, context, callback, creationTime, resends) VALUES ('${message.requestId}', '${message.messageName}', '${context}', '${callbackName}', '${creationTime}', ${resends})`;
-        this.raftGroup.executeCommand(sqlStatement);
+        this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     findMessageByMessageId(messageId) {
@@ -36,13 +43,13 @@ module.exports = class MessageGroup extends RaftGroup{
     incrementResendsForMessage(messageId) {
         // Increment resends for message in rqlite table
         const sqlStatement = `UPDATE messages SET resends = resends + 1 WHERE messageId = ${messageId}`;
-        this.raftGroup.executeCommand(sqlStatement);
+        this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     removeMessageByMessageId(messageId) {
         // Remove message from rqlite table
         const sqlStatement = `DELETE FROM messages WHERE messageId = ${messageId}`;
-        this.raftGroup.executeCommand(sqlStatement);
+        this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     getUnacknowledgedMessages() {
@@ -57,7 +64,7 @@ module.exports = class MessageGroup extends RaftGroup{
 
     // Expose isLeader method from RaftGroup
     isLeader() {
-        return this.raftGroup.isLeader();
+        return this.raftGroupImplementation.isLeader();
     }
 
     houseKeeping() {
@@ -68,7 +75,7 @@ module.exports = class MessageGroup extends RaftGroup{
 
     close() {
         // Close rqlite connection
-        this.raftGroup.close();
+        this.raftGroupImplementation.close();
     }
 
 }

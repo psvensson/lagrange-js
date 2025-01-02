@@ -7,7 +7,7 @@ module.exports = class RaftGroup {
     interval = 5000;    
 
     constructor(raftImplementation) {
-        this.raftImplementation = raftImplementation;
+        this.raftGroupImplementation = raftImplementation;
         setTimeout(this.houseKeeping, this.interval);
     }
 

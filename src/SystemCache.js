@@ -1,24 +1,27 @@
 
+const MessagingLayer = require('./MessagingLayer');
+
 // The SystemCache is the base class for all cache classes. It defines the Cache API and le the subclasses handle implementation details.
 module.exports = class SystemCache {
+    static UPDATE_SYSTEM = 'UPDATE_SYSTEM';
+    static WILDACRD_DESTINATION = '*';
 
     cacheName = 'Undefined Cache Name';
     static messageLayer = null; // The assigned messagegroup for this node, set a bit after init, but before we need to send anything
 
     static setMessageLayer(messageLayer) {
+        console.log('SystemCache::setMessageLayer setting mesageLayer:')
+        console.dir(messageLayer)
         this.messageLayer = messageLayer;
     }
 
     static getMessageLayer() {
-        return this.messageLayer;
+        return SystemCache.messageLayer;
     }
 
     constructor(messageLayer, initialData) {
         this.messageLayer = messageLayer;
-        this.cache = {};
-        if (initialData) {
-            this.cache = JSON.parse(initialData);
-        }
+        this.cache = initialData ? JSON.parse(initialData) : {};        
     }
 
     // Get the value of a key in the cache
@@ -66,6 +69,8 @@ module.exports = class SystemCache {
     updateSystem(cacheName, key, value) {
         const messageLayer = SystemCache.getMessageLayer();
         // Perform update
+        const updateOtherNodes = MessagingLayer.createCommand(SystemCache.UPDATE_SYSTEM, {cacheName, key, value});
+        messageLayer.sendMessage(updateOtherNodes, SystemCache.WILDACRD_DESTINATION);
     }
 
     // serialize cache into write format, so it can be sent to a new peer

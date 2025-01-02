@@ -1,7 +1,7 @@
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
-const NodeManager = require('../_old/NodeManager');
+const NodeManager = require('./Node.js');
 const WebSocketTransport = require('./communication/WsTransport');
 
 const argv = yargs(hideBin(process.argv)).argv
