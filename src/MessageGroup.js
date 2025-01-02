@@ -9,14 +9,17 @@ module.exports = class MessageGroup extends RaftGroup{
         super(raftGroupImplementation);
         // Create rqlite table for messages, to hold messageId, messageName, serialized context (if any), name of callback to invoke, creation time, and number of resends
         const sqlStatement = "CREATE TABLE IF NOT EXISTS messages (messageId TEXT PRIMARY KEY, messageName TEXT, context TEXT, callback TEXT, creationTime TEXT, resends INTEGER)";
-        this.raftGroupImplementation.executeQuery(sqlStatement);
+        return new Promise((resolve, PromiseRejectionEvent) => {
+            this.raftGroupImplementation.executeQuery(sqlStatement).then(() => {
+                resolve(this);
+            });
+        })
     }
 
     // Expose raftgroup implementation to system caches to implement their own tables and access needed
     getRaftGroupImplementation(){
         return this.raftGroupImplementation;
     }
-
     
     /* Message format:
     {
@@ -24,38 +27,56 @@ module.exports = class MessageGroup extends RaftGroup{
         messageName: messageName,
         data: data
     }*/
+
+    listTables(){
+        const sqlStatement = "SELECT name FROM sqlite_master WHERE type='table'";        
+        this.raftGroupImplementation.executeQuery(sqlStatement).then((tables) => {
+            console.log('=========================================================================================================== Sqlite tables:')
+            console.log(tables);
+        })
+    }
     
+    listAllMessages(){
+        const sqlStatement = "SELECT * FROM messages";
+        this.raftGroupImplementation.executeQuery(sqlStatement).then((messages) => {
+            console.log('=========================================================================================================== All messages:')
+            console.log(messages);
+        })
+    }
+
     // The messages are sent for two reasons; 1) To have the current leader be able toresend them and 2) to let any node in the message raft group be able to load context and execute handler code when an ack is received
-    saveMessage(message, context, callbackName) {
+    saveMessage(message, context, callbackName) {        
         // Save message in rqlite table
         const creationTime = new Date().toISOString();
         const resends = 0;
         const sqlStatement = `INSERT INTO messages (messageId, messageName, context, callback, creationTime, resends) VALUES ('${message.requestId}', '${message.messageName}', '${context}', '${callbackName}', '${creationTime}', ${resends})`;
-        this.raftGroupImplementation.executeQuery(sqlStatement);
+        return this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     findMessageByMessageId(messageId) {
+        console.log('-------------------------------------------findMessageByMessageId-------------------------------------------')
+        this.listAllMessages();
         // Find message in rqlite table and return it
-        const sqlStatement = `SELECT * FROM messages WHERE messageId = ${messageId}`;
-        return this.raftGroup.executeQuery(sqlStatement);
+        const sqlStatement = `SELECT * FROM messages WHERE messageId = "${messageId}"`;
+        return this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     incrementResendsForMessage(messageId) {
         // Increment resends for message in rqlite table
-        const sqlStatement = `UPDATE messages SET resends = resends + 1 WHERE messageId = ${messageId}`;
+        const sqlStatement = `UPDATE messages SET resends = resends + 1 WHERE messageId = "${messageId}"`;
         this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     removeMessageByMessageId(messageId) {
         // Remove message from rqlite table
-        const sqlStatement = `DELETE FROM messages WHERE messageId = ${messageId}`;
+        const sqlStatement = `DELETE FROM messages WHERE messageId = "${messageId}"`;
         this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     getUnacknowledgedMessages() {
         // Find all messages in rqlite table where resends < MAX_RESENDS
         const sqlStatement = `SELECT * FROM messages WHERE resends < ${RaftGroup.MAX_RESENDS}`;
-        return this.raftGroup.executeQuery(sqlStatement);
+        return this.raftGroupImplementation.executeQuery(sqlStatement);
     }
 
     setHouseKeepingCallback(callback) {

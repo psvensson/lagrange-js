@@ -24,26 +24,28 @@ test('Test MessageLayer', async () => {
     const raftNode1Address = "mock://11.22.33.44:4711";
     const raft1 = new MockRaftImplementation(raftNode1Address, peerAddresses);    
 
-    const node1 = new Node({
+    const node1 = await new Node({
         externalAddress: node1Address,
         transportLayer: mockTransport1,
         raftImplementation: raft1,
     });
 
-    /*
+    console.log('------------------------------- test node1 is:')
+    console.dir(node1)
+
+    
     const node2Address = "mock://77.88.99.11:2002";
     const mockTransport2 = new MockTransport(node2Address);
     const raftNode2Address = "mock://77.88.99.11:4711";
     const raft2 = new MockRaftImplementation(raftNode2Address, peerAddresses);
     
-    const node2 = new Node({
+    const node2 = await new Node({
         externalAddress: node2Address,
         transportLayer: mockTransport2,
         raftImplementation: raft2,
         existingNode: node1Address
     });
-    */
-    
+        
     
 });
 

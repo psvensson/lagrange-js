@@ -10,7 +10,7 @@ module.exports = class MockTransport extends BaseTransport {
   constructor(ipAddress) {
 
     super(ipAddress)
-    if (MockTransport.localNodes[ipAddress]) {
+    if (!MockTransport.localNodes[ipAddress]) {
         // Save each instance of mocktransport in the static localNodes object
         // This way any message send can directly look up the receiver and call its receie callback directly
       MockTransport.localNodes[ipAddress] = this
@@ -18,23 +18,28 @@ module.exports = class MockTransport extends BaseTransport {
   }
 
   getAddress() {
-    return `mock://${this.ipAddress}:${COMMAND_SOCKET_MOCK_PORT}`
+    return `mock://${this.address}:${COMMAND_SOCKET_MOCK_PORT}`
   }
 
   getProtocol() {
     return 'mock'
   }
 
-  transportMessage(message, destination) {
+  async transportMessage(message, destination) {
     console.log('MockTransport::transportMessage', message, destination)       
     if(destination === SystemCache.WILDACRD_DESTINATION) {
         // If the destination is a wildcard, call the receive callback of all the receivers
       console.log('MockTransport not implementing wildcard destination')
     } else {
-      const extractedAddress = destination.match(/\/\/([^\/]+)/)[1]
-      console.log('MockTransport::transportMessage extractedAddress:', extractedAddress)
+      //const extractedAddress = destination.match(/\/\/([^\/]+)/)[1]
+      console.log('MockTransport::transportMessage extractedAddress:', destination)
       // Find the previously registered receiver and call its receive callback
-      MockTransport.localNodes[extractedAddress[0]].receiveCallback(message)
+      //console.log('registered mock nodes are;')
+      //console.dir(MockTransport.localNodes)
+      const found = MockTransport.localNodes[destination]
+      //console.log('found is;')
+      //console.dir(found)
+      found.receiveCallback(message)
     }    
   }
 

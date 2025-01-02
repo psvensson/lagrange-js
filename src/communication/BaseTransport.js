@@ -15,6 +15,7 @@ module.exports = class BaseTransport {
 
     registerCallback(callback) {
         this.receiveCallback = callback;
+        //console.log('*** BaseTransport.registerCallback executed')
     }
 
     async transportMessage(message, destination) {

@@ -12,30 +12,36 @@ module.exports = class MessagingLayer {
         this.messageGroup = messageGroup;
         this.messageGroup.setHouseKeepingCallback(this.houseKeeping);
         this.transportLayer = transportLayer;
-        this.transportLayer.registerCallback(this.messageReceivedFromTransport);
+        this.transportLayer.registerCallback(this.messageReceivedFromTransport.bind(this));
     }
 
     handlers = {}
 
-    static createCommand(messageName, data) {
+    createCommand(messageName, data) {
         return {
             requestId: uuids.v4(),
+            source: this.transportLayer.address,
             messageName: messageName,
             data: data
         }
     }
 
-    static createAckFor(message, result) {
+    createAckFor(message, result) {
         return {
-            requestId: message.requestId,
+            requestId: uuids.v4(),
+            originalRequestId: message.requestId,
+            source: this.transportLayer.address,
             messageName: 'ACK',
             data: result
         }
     }
     
     sendMessage(message, destination, context, callbackFunctionName) {
-        this.messageGroup.saveMessage(message, context, callbackFunctionName);
-        this.transportLayer.transportMessage(message, destination);
+        this.messageGroup.saveMessage(message, context, callbackFunctionName).then((res) => {
+            console.log('............................ sendMessage saved message:')
+            console.dir(res);
+            this.transportLayer.transportMessage(message, destination);
+        });
     }
 
     // An async version of sendMessafe which waits until ack is reeived and then returns the value, instead of using context and named callbacks function
@@ -55,16 +61,29 @@ module.exports = class MessagingLayer {
     listenFor(messagename, handler) {
         // Register handler for message name
         this.handlers[messagename] = handler;
+        //console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.listenFor Registered handler for message name: ' + messagename);
+        //console.dir(this.handlers)
     }
 
-    receiveAck(message) {
+    //TODO: It seems like the messages are empty, so we need to find the original message by the originalRequestId
+    async receiveAck(message) {
+        console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
+        console.dir(message);
+        console.log('unsafecallbacks are:')
+        console.dir(this.unsafeCallbacks);
         //Find message identified in ack
 	    // If ack contains result, evaluate message context with result
         // Remove from raft group
-        const originalMessage = this.messageGroup.findMessageByMessageId(message.requestId);
-        this.messageGroup.removeMessageByMessageId(message.requestId);        
+        
+        this.messageGroup.removeMessageByMessageId(message.originalRequestId);        
        // Get callback function locally if unsafe, or by name from the code system cache
-        const callback = this.unsafeCallbacks[originalMessage.requestId] || getCallbackFunctionByName(originalMessage.callback);
+        const callback = this.unsafeCallbacks[message.originalRequestId] 
+        if(!callback) {
+            const originalMessage = await this.messageGroup.findMessageByMessageId(message.originalRequestId);
+            console.log('found saved message:')
+            console.dir(originalMessage);
+            this.getCallbackFunctionByName(originalMessage.callback);
+        }
         callback(message);
     }
 
@@ -73,8 +92,14 @@ module.exports = class MessagingLayer {
     }
 
     messageReceivedFromTransport(message) {
+        /*
         console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ Message received from transport');
         console.dir(message);
+        console.log('registered handlers are:')
+        console.dir(this.handlers);
+        console.log('this is:')
+        console.dir(this);
+        */
         // If message is an ack, call receiveAck, otherwise call handler
         message.messageName == 'ACK' ? this.receiveAck(message) : this.handlers[message.messageName](message);
     }

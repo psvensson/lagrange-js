@@ -18,26 +18,25 @@ module.exports = class RqliteRaftImplementation extends RaftImplementation {
         });
     }
 
-    close(){
+    close() {
         // Close the rqlite instance
-        // Use docker to stop the container with the name 'rqlite'
-        docker.listContainers(function (err, containers) {
-            if(err){
-                console.log('RqliteRaftImplementation close error = ',err);
-            }
-            containers.forEach(function (containerInfo) {
-                if (containerInfo.Names.includes('/rqlite_${this.uniqueName}')) {
-                    const container = docker.getContainer(containerInfo.Id);
-                    container.stop(function (err, data) {
-                        console.log('RqliteRaftImplementation close result = ',data);
-                        if(err){
-                            console.log('RqliteRaftImplementation close error = ',err);
+        if (this.container) {
+            this.container.stop((err, data) => {
+                if (err) {
+                    console.log('RqliteRaftImplementation close stop error = ', err);
+                } else {
+                    console.log('RqliteRaftImplementation close stop result = ', data);
+                    this.container.remove((err, data) => {
+                        if (err) {
+                            console.log('RqliteRaftImplementation close remove error = ', err);
+                        } else {
+                            console.log('RqliteRaftImplementation close remove result = ', data);
                         }
                     });
                 }
             });
-        });
-    }   
+        }
+    }
 
     // execute query using the rqlite command inside the running container
     executeQuery(query) {

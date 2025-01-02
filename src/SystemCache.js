@@ -10,13 +10,9 @@ module.exports = class SystemCache {
     static messageLayer = null; // The assigned messagegroup for this node, set a bit after init, but before we need to send anything
 
     static setMessageLayer(messageLayer) {
-        console.log('SystemCache::setMessageLayer setting mesageLayer:')
+        console.log('SystemCache::setMessageLayer setting messageLayer:')
         console.dir(messageLayer)
-        this.messageLayer = messageLayer;
-    }
-
-    static getMessageLayer() {
-        return SystemCache.messageLayer;
+        SystemCache.messageLayer = messageLayer;
     }
 
     constructor(messageLayer, initialData) {
@@ -67,9 +63,11 @@ module.exports = class SystemCache {
 
     // Update the system with the cache changes using the messageLayer of the node  
     updateSystem(cacheName, key, value) {
-        const messageLayer = SystemCache.getMessageLayer();
+        const messageLayer = SystemCache.messageLayer
+        //console.log('SystemCache::updateSystem messageLayer:')
+        //console.dir(messageLayer)
         // Perform update
-        const updateOtherNodes = MessagingLayer.createCommand(SystemCache.UPDATE_SYSTEM, {cacheName, key, value});
+        const updateOtherNodes = messageLayer.createCommand(SystemCache.UPDATE_SYSTEM, {cacheName, key, value});
         messageLayer.sendMessage(updateOtherNodes, SystemCache.WILDACRD_DESTINATION);
     }
 

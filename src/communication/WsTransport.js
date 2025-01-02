@@ -34,7 +34,7 @@ module.exports = class WsTransport extends BaseTransport {
     return ws
 }
 
-  transportMessage(message, destination) {
+  async transportMessage(message, destination) {
     console.log('WsTransport::send', message, destination)
     if (!clientCache[url]) {
       clientCache[url] = this.createWebSocketClient(url)
