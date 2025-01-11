@@ -1,5 +1,5 @@
 
-
+// THe raftgroups are stored in their own system table.
 module.exports = class RaftGroup {
 
     raftImplementation = null;

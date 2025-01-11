@@ -1,5 +1,5 @@
 const BaseTransport = require('../../src/communication/BaseTransport')
-const SystemCache = require('../../src/SystemCache')
+const SystemCache = require('../../src/cache/SystemCache')
 
 const COMMAND_SOCKET_MOCK_PORT = 987654321
 

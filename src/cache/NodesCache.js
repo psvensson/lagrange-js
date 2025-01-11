@@ -7,28 +7,39 @@ module.exports = class NodesCache extends SystemCache {
 
     constructor(messageLayer, initialData) {
         super(messageLayer, initialData);
-        this.cacheName = 'NodesCache';       
+        this.cacheName = SystemCache.NODES_CACHE;     
     }
 
-    // Create nodes table in messageGroup.raftGroup
+    getTableName() {
+        return 'nodes';
+    }
+
+    // Create nodes table the cache in-memory db
     createTable() {
         const sqlStatement = `
-            CREATE TABLE IF NOT EXISTS nodes (
+            CREATE TABLE IF NOT EXISTS ${this.tableName} (
                 nodeId TEXT PRIMARY KEY, 
                 externalAddress TEXT, 
                 latencyZone TEXT, 
                 freeMem REAL, 
                 freeCpu REAL
             );
-            CREATE INDEX IF NOT EXISTS idx_latencyZone ON nodes (latencyZone);
+            CREATE INDEX IF NOT EXISTS idx_latencyZone ON ${this.tableName} (latencyZone);
         `;
-        this.messageLayer.raftGroup.executeCommand(sqlStatement);
+        // Create table using sqlite API and the this.db object
+        this.db.exec(sqlStatement);
     }
 
-    // create a similar table for messagegroup (holding only the id)
-    createNodeTable() {
-        const sqlStatement = "CREATE TABLE IF NOT EXISTS nodes (nodeId TEXT PRIMARY KEY)";
-        this.messageLayer.raftGroup.executeCommand(sqlStatement);
+    async insertInitialData(initialData) {
+        // The initialData format is the same as the output from the sqlite3 all() function call, just an array of rows
+        // The call looks like this that produced the data; 
+        /*
+        db.all("SELECT * FROM my_table", function(err, rows) {  
+            rows.forEach(function (row) {  
+                console.log(row.col1, row.col2);    // and other columns, if desired
+            })  
+        });*/
+        await Promise.all(initialData.map(row => this.addNode(row.externalAddress, row)));
     }
 
     /*
@@ -43,20 +54,22 @@ module.exports = class NodesCache extends SystemCache {
     * }
     * 
     */
-    addNode(externalAddress, node) {
-        this.set(externalAddress, node)
+    async addNode(externalAddress, node) {
+        // insert a new record of the node in the db 
+        const sqlStatement = `INSERT INTO ${this.tableName} (nodeId, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
+        return this.run(sqlStatement);
     }
 
     // Get all unique latency zone ids from the latency zone table
     latencyZones() {
-        const sqlStatement = `SELECT DISTINCT latencyZone FROM nodes`;
-        return this.messageLayer.raftGroup.executeQuery(sqlStatement);
+        const sqlStatement = `SELECT DISTINCT latencyZone FROM ${this.tableName}`;
+        return this.get(sqlStatement);
     }
 
     // Get one random node from a given latency zone
     randomNodeFromLatencyZone(latencyZone) {
-        const sqlStatement = `SELECT * FROM nodes WHERE latencyZone = '${latencyZone}' ORDER BY RANDOM() LIMIT 1`;
-        return this.messageLayer.raftGroup.executeQuery(sqlStatement);
+        const sqlStatement = `SELECT * FROM ${this.tableName} WHERE latencyZone = '${latencyZone}' ORDER BY RANDOM() LIMIT 1`;
+        return this.get(sqlStatement);
     }
 
     // Ping a random node in a given latency zone

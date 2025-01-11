@@ -1,11 +1,13 @@
 const MessageGroup = require('./MessageGroup');
-const NodesCache = require('./NodesCache');
-const RaftGroupsCache = require('./RaftGroupsCache');
-const LatencyZonesCache = require('./LatencyZonesCache');
-const SystemCache = require('./SystemCache');
+const NodesCache = require('./cache/NodesCache');
+const RaftGroupsCache = require('./cache/RaftGroupsCache');
+const CodeCache = require('./cache/CodeCache');
+const SystemCache = require('./cache/SystemCache');
 const MessagingLayer = require('./MessagingLayer');
 const WsTransport = require('./communication/WsTransport');
 
+// The nodes are stored in their own system table.
+// Nodeas aren't created anywhere else but in the process of a new node startin up, so there's no need for a static create method here.
 module.exports = class Node {
 
     static GET_PEER_DATA = 'GET_PEER_DATA';
@@ -17,7 +19,7 @@ module.exports = class Node {
 
     nodesCache = null;
     raftGroupsCache = null;
-    latencyZonesCache = null;
+    codeCache = null;
 
     constructor(args) {
         console.log('================================================== ('+args.externalAddress+') Node Constructor ===============================')
@@ -64,12 +66,12 @@ module.exports = class Node {
     createSystemCaches(existingData) {
         this.nodesCache = new NodesCache(existingData.nodes);
         this.raftGroupsCache = new RaftGroupsCache(existingData.raftGroups);
-        this.latencyZonesCache = new LatencyZonesCache(existingData.latencyZones);
+        this.codeCache = new CodeCache(existingData.code);
     }
 
     // If existingNode provided, download system informatino and populate caches.
     async populateCaches(existingNode) {        
-        console.log('======== ('+this.externalAddress+') Node::populateCaches') 
+        //console.log('======== ('+this.externalAddress+') Node::populateCaches') 
         const existingData = existingNode ? await this.fetchPeerData(existingNode): {}        
         this.createSystemCaches(existingData);
     }
@@ -79,9 +81,11 @@ module.exports = class Node {
         console.dir(this.messageLayer)
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);
-        console.log('======== ('+this.externalAddress+') Node::fetchPeerData created command: ')
-        console.dir(getPeerData) 
-        const peerData = await this.messageLayer.sendMessageAndWaitForAck(getPeerData, existingNode);       
+        //console.log('======== ('+this.externalAddress+') Node::fetchPeerData created command: ')
+        //console.dir(getPeerData) 
+        // TODO: use the sendmessage and receive message pattern to get this data instead to simplify the MessageLayer.
+        // That means that we need to create a context for the message, and a named callback function stored in the Code system table to handle the reply, when an ack comes.
+        const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
         console.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: ')
         console.dir(peerData)  
         return peerData;
@@ -99,7 +103,7 @@ module.exports = class Node {
             this.messageLayer.sendMessage(ack, message.source);
         });
         // Set messageLayer for all system caches
-        console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
+        //console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
         SystemCache.setMessageLayer(this.messageLayer);
     }
 
@@ -115,7 +119,7 @@ module.exports = class Node {
         return {
             nodes: this.nodesCache.serialize(),
             raftGroups: this.raftGroupsCache.serialize(),
-            latencyZones: this.latencyZonesCache.serialize()
+            code: this.codeCache.serialize()
         }
     }
 

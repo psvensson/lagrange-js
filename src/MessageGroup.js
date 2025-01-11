@@ -1,6 +1,7 @@
 const RaftGroup = require("./RaftGroup");
 
 // TODO: Create superclass for this class so it can be mocked
+// The MessageGroup has no system table and is instead stored as a property of the Node property in its system table
 module.exports = class MessageGroup extends RaftGroup{
 
     houseKeepingCallback = null;
