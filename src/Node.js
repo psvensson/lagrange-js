@@ -105,7 +105,7 @@ module.exports = class Node {
 
     async openMessageLayer(transportLayer, raftImplementation) {          
         console.log('======== ('+this.externalAddress+') Node::openMessageLayer')     
-        const messageGroup = await new MessageGroup(raftImplementation);
+        const messageGroup = await new MessageGroup({raftImplementation});
         this.messageLayer = new MessagingLayer(messageGroup, transportLayer);
         this.messageLayer.listenFor(Node.GET_PEER_DATA, (message) => {
             // Respond with nodesCache data

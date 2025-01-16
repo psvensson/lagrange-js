@@ -1,3 +1,4 @@
+const uuids = require('uuid');
 
 // THe raftgroups are stored in their own system table.
 module.exports = class RaftGroup {
@@ -6,8 +7,9 @@ module.exports = class RaftGroup {
     // Interval to handle raft group housekeeping
     interval = 5000;    
 
-    constructor(raftImplementation) {
-        this.raftGroupImplementation = raftImplementation;
+    constructor(args) {
+        this.raftGroupImplementation = args.raftGroupImplementation;
+        this.id = args.id || uuids.v4();
         setTimeout(this.houseKeeping, this.interval);
     }
 

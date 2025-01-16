@@ -1,13 +1,20 @@
 const RaftGroup = require("./RaftGroup");
 
 // TODO: Create superclass for this class so it can be mocked
+
+// Overview:
+
+// The MessageGroup is a special type of RaftGroup are used by its members to safely send messages to other nodes (or message groups) in the system.
+// The MessageLayer of a node always has a MessageGroup. The MessageGroup saves messages in the raft cluster that essentially is the message group, so that that any unacknowledged messages can be resend by the raft leader, if needed.
+
 // The MessageGroup has no system table and is instead stored as a property of the Node property in its system table
 module.exports = class MessageGroup extends RaftGroup{
 
     houseKeepingCallback = null;
+    type = 'MessageGroup';
 
-    constructor(raftGroupImplementation) {
-        super(raftGroupImplementation);
+    constructor(args) {
+        super(args);        
         // Create rqlite table for messages, to hold messageId, messageName, serialized context (if any), name of callback to invoke, creation time, and number of resends
         const sqlStatement = "CREATE TABLE IF NOT EXISTS messages (messageId TEXT PRIMARY KEY, messageName TEXT, context TEXT, callback TEXT, creationTime TEXT, resends INTEGER)";
         return new Promise((resolve, PromiseRejectionEvent) => {

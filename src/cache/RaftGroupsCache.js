@@ -30,6 +30,7 @@ module.exports = class RaftGroupsCache extends SystemCache {
     }
 
     addRaftGroup(raftGroup) {
+        console.log('RaftGroupsCache::addRaftGroup raftGroup: ', raftGroup)
         // INsert a new record of the raft group in the db and then call updateSystem
         const sqlStatement = `INSERT INTO ${this.tableName} (id, type, members) VALUES ('${raftGroup.id}', '${raftGroup.type}', '${raftGroup.members}')`;
         return this.run(sqlStatement)

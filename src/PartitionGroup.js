@@ -8,7 +8,10 @@ const RaftGroup = require('./RaftGroup');
 // Services that access the system table will analyze the sql statement WHERE caluse to understand which partition to access.
 // Any additional index for the system table need to be stored in its own system table (and partition(s)).
 // When looking up the partition for a WHERE clause, there ned to be an index already created for the property of the WHERE clause. The value of the WHERE clause ('like 'WHERE id = 123') will be used to find the partition.
+
 module.exports = class PartitionGroup extends RaftGroup{
+
+    type = 'PartitionGroup';
 
     static create(partitionDefinition){
         // Create a new partition group
