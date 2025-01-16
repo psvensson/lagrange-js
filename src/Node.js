@@ -1,3 +1,5 @@
+const uuids = require('uuid');
+
 const MessageGroup = require('./MessageGroup');
 const NodesCache = require('./cache/NodesCache');
 const RaftGroupsCache = require('./cache/RaftGroupsCache');
@@ -14,6 +16,10 @@ module.exports = class Node {
     static SYSTEM_NODE_PORT = 2002 // The single port which is to be used to coommunicated messages between systems
 
     externalAddress = '';
+    latencyZone = '<initial>';
+    freeMem = 0;
+    freeCpu = 0;
+
     messageLayer = null;
     nextPortAvailable = 3200; // For raft groups
 
@@ -26,6 +32,8 @@ module.exports = class Node {
         console.dir(args)
         return new Promise((resolve, reject) => {
             const {externalAddress, existingNode} = args
+            this.externalAddress = externalAddress;
+            this.id = args.id || uuids.v4();
             const transportLayer =      args.transportLayer ? 
                                         args.transportLayer : new WsTransport('http://'+externalAddress+':' + Node.SYSTEM_NODE_PORT);
 
@@ -55,7 +63,11 @@ module.exports = class Node {
     serialize() {
         return {
             externalAddress: this.externalAddress,
-            nextPortAvailable: this.nextPortAvailable
+            nextPortAvailable: this.nextPortAvailable,
+            id: this.id,
+            latencyZone: this.latencyZone,
+            freeMem: this.freeMem,
+            freeCpu: this.freeCpu
         }
     }
 
@@ -99,8 +111,10 @@ module.exports = class Node {
             // Respond with nodesCache data
             console.log('======== ('+this.externalAddress+') Node::openMessageLayer got message:') 
             console.dir(message)
-            const ack = this.messageLayer.createAckFor(message, this.serializeCaches());
-            this.messageLayer.sendMessage(ack, message.source);
+            this.serializeCaches().then(serializedCaches => {
+                const ack = this.messageLayer.createAckFor(message, serializedCaches);
+                this.messageLayer.sendMessageToNode(ack, message.source);
+            })
         });
         // Set messageLayer for all system caches
         //console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
@@ -108,19 +122,31 @@ module.exports = class Node {
     }
 
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
-        console.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup') 
+        console.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
+
+        const foo = ()=>{
+            this.codeCache.showContext()
+        }
+        
+        foo()
+        
         const morePeers = await this.findRaftPeers(nodesCache);
         // Add morePeers to messageGroup
         await Promise.all(morePeers.map(peer => messageGroup.addPeer(peer)));
     }
 
-    serializeCaches() {
+    async serializeCaches() {
         console.log('======== ('+this.externalAddress+') Node::serializeCaches') 
+        const [nodes, raftGroups, code] = await Promise.all([
+            this.nodesCache.serialize(),
+            this.raftGroupsCache.serialize(),
+            this.codeCache.serialize()
+        ]);
         return {
-            nodes: this.nodesCache.serialize(),
-            raftGroups: this.raftGroupsCache.serialize(),
-            code: this.codeCache.serialize()
-        }
+            nodes,
+            raftGroups,
+            code
+        };
     }
 
     async findRaftPeers(nodesCache) {

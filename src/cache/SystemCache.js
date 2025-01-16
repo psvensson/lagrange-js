@@ -28,14 +28,16 @@ module.exports = class SystemCache {
     static messageLayer = null; // The assigned messagegroup for this node, set a bit after init, but before we need to send anything
 
     constructor(messageLayer, initialData) {
-        this.caches(this.cacheName) = this; // Save any instance of a system cache so it can be looked up using the class
+        SystemCache.caches[this.cacheName] = this; // Save any instance of a system cache so it can be looked up using the class
         this.db = new sqlite3.Database(':memory:');   
         this.tableName = this.getTableName()
         this.messageLayer = messageLayer;
         // TODO: We should not have both an internal sqlite db and a hastable for the same thing, hmm?
         if(initialData) {
+            console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&6 SystemCache::constructor inserting initial data');
+            console.dir(initialData)
             this.insertInitialData(initialData).then(() => {
-               console.log('SystemCache::constructor initial data inserted');
+               console.log(' SystemCache::constructor initial data inserted');
             });
         } 
         this.createTable();  
@@ -61,6 +63,10 @@ module.exports = class SystemCache {
 
     // Common method to call this.db.run for sql eueries, handling errors, returning a promise which reoslves with the results, if any
     run(sqlStatement) {
+        console.log('SystemCache::run sqlStatement: ', sqlStatement)
+        if (sqlStatement.includes('undefined')) {
+            throw new Error('SystemCache::run sqlStatement includes undefined')
+        }
         return new Promise((resolve, reject) => {
             this.db.run(sqlStatement, function(err) {
                 if (err) {
@@ -96,9 +102,10 @@ module.exports = class SystemCache {
     }
 
     // serialize cache into write format, so it can be sent to a new peer
-    serialize() {
+    async serialize() {
         // Extract current table in db
         const sqlStatement = `SELECT * FROM ${this.tableName}`;
+        const result = await this.get(sqlStatement);
         return JSON.stringify(result);
     }
 

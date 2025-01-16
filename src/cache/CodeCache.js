@@ -22,7 +22,7 @@ module.exports = class CodeCache extends SystemCache {
             CREATE INDEX IF NOT EXISTS idx_type ON ${this.tableName} (type);
         `;
         // Create table using sqlite API and the this.db object
-        this.db.exec(sqlStatement);
+        this.db.exec(sqlStatement);        
     }
 
     async insertInitialData(initialData) {
@@ -35,5 +35,13 @@ module.exports = class CodeCache extends SystemCache {
         // insert a new record of the node in the db 
         const sqlStatement = `INSERT INTO ${this.tableName} (id, name, type, body) VALUES ('${codeObj.id}', '${codeObj.name}', '${codeObj.type}', '${codeObj.body}')`;        
         return this.run(sqlStatement);
+    }
+
+    showContext() {
+        const error = new Error('fakeError')
+        // Extract the stack trace and split it into individual lines
+        const stackTrace = error.stack?.split('\n')
+        console.log('+++++++++++++++++++++++++++++++++++++++++++++ stack trace (DEBUG Test) +++++++++++++++++++++++++++++++++++++++++++++')
+        console.log(stackTrace)
     }
 }

@@ -15,19 +15,26 @@ this.messageLayer = new MessagingLayer(messageGroup);
 
 */
 
+function createNode(args) {
+    const mockTransport = new MockTransport(args.externalAddress);
+    const raft = new MockRaftImplementation(args.raftNodeAddress, args.peerAddresses);
+    return new Node({
+        externalAddress: args.externalAddress,
+        transportLayer: mockTransport,
+        raftImplementation: raft,
+    });
+}
+
 
 test('Test MessageLayer', async () => {
-    const node1Address = "mock://11.22.33.44:2002";    
-    const mockTransport1 = new MockTransport(node1Address);    
-
-    const peerAddresses = [];
+    const node1Address = "mock://11.22.33.44:2002";
     const raftNode1Address = "mock://11.22.33.44:4711";
-    const raft1 = new MockRaftImplementation(raftNode1Address, peerAddresses);    
-
-    const node1 = await new Node({
+    const peerAddresses = [];
+    
+    const node1 = await createNode({
         externalAddress: node1Address,
-        transportLayer: mockTransport1,
-        raftImplementation: raft1,
+        raftNodeAddress: raftNode1Address,
+        peerAddresses: peerAddresses
     });
 
     console.log('------------------------------- test node1 is:')
@@ -35,14 +42,12 @@ test('Test MessageLayer', async () => {
 
     
     const node2Address = "mock://77.88.99.11:2002";
-    const mockTransport2 = new MockTransport(node2Address);
     const raftNode2Address = "mock://77.88.99.11:4711";
-    const raft2 = new MockRaftImplementation(raftNode2Address, peerAddresses);
     
-    const node2 = await new Node({
+    const node2 = await createNode({
         externalAddress: node2Address,
-        transportLayer: mockTransport2,
-        raftImplementation: raft2,
+        raftNodeAddress: raftNode2Address,
+        peerAddresses: peerAddresses,
         existingNode: node1Address
     });
         

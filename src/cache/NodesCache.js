@@ -55,8 +55,9 @@ module.exports = class NodesCache extends SystemCache {
     * 
     */
     async addNode(externalAddress, node) {
+        console.log('NodesCache::addNode node: ', node)
         // insert a new record of the node in the db 
-        const sqlStatement = `INSERT INTO ${this.tableName} (nodeId, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
+        const sqlStatement = `INSERT INTO ${this.tableName} (nodeId, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
         return this.run(sqlStatement);
     }
 
