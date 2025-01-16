@@ -49,6 +49,21 @@ module.exports = class SystemCache {
         SystemCache.messageLayer = messageLayer;
     }    
 
+    static async serializeAllCaches() {
+        const cacheNames = Object.keys(SystemCache.caches);
+        const serializedCaches = await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].serialize()));
+        console.log('------------------------------------------- serializedCaches -------------------------------------------')
+        console.dir(serializedCaches)
+        return serializedCaches;
+    }
+
+    static async populateAllCaches(existingData) {
+        console.log('SystemCache::populateAllCaches existingData: ')
+        console.dir(existingData)
+        const cacheNames = Object.keys(SystemCache.caches);
+        await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(existingData[cacheName] || [])));
+    }
+
     createTable() {
         throw new Error('Method SystemCache.createTable not implemented in subclass; ', this);
     }
@@ -109,4 +124,5 @@ module.exports = class SystemCache {
         return JSON.stringify(result);
     }
 
+    
 }

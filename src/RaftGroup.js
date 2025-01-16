@@ -3,13 +3,14 @@ const uuids = require('uuid');
 // THe raftgroups are stored in their own system table.
 module.exports = class RaftGroup {
 
-    raftImplementation = null;
+    raftGroupImplementation = null;
     // Interval to handle raft group housekeeping
     interval = 5000;    
 
     constructor(args) {
         this.raftGroupImplementation = args.raftGroupImplementation;
         this.id = args.id || uuids.v4();
+        this.members = args.members || [];
         setTimeout(this.houseKeeping, this.interval);
     }
 
@@ -19,7 +20,7 @@ module.exports = class RaftGroup {
 
     async isLeader() {
         // Ask raft impementation if this node is the leader
-        const status = await this.raftImplementation.status();
+        const status = await this.raftGroupImplementation.status();
         // Check if status string includes ths substring "leader ok"
         return status.includes("leader ok");
     }

@@ -43,20 +43,10 @@ module.exports = class Node {
             this.externalAddress = externalAddress;
 
             this.openMessageLayer(transportLayer, raftImplementation)
-                .then(() => this.populateCaches(existingNode))
-                .then(() => {
-                    //
-                    // Update nodes system caches
-                    //
-                    console.log('======== ('+this.externalAddress+') Node::constructor updating nodes system caches') 
-                    this.nodesCache.addNode(this.externalAddress, this.serialize());
-                    this.raftGroupsCache.addRaftGroup(this.externalAddress, this.messageLayer);
-                    return this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageLayer);
-                })
+                .then(() => this.populateCaches(existingNode))                
                 .then(() => {
                     resolve(this);
                 })
-                .catch(reject);
         });
     }
 
@@ -76,27 +66,23 @@ module.exports = class Node {
     }
 
     createSystemCaches(existingData) {
-        this.nodesCache = new NodesCache(existingData.nodes);
-        this.raftGroupsCache = new RaftGroupsCache(existingData.raftGroups);
-        this.codeCache = new CodeCache(existingData.code);
+        this.nodesCache = new NodesCache(existingData ? existingData.nodes : '');
+        this.raftGroupsCache = new RaftGroupsCache(existingData ? existingData.raftGroups : '');
+        this.codeCache = new CodeCache(existingData ? existingData.code : '');
     }
 
     // If existingNode provided, download system informatino and populate caches.
     async populateCaches(existingNode) {        
-        //console.log('======== ('+this.externalAddress+') Node::populateCaches') 
+        console.log('======== ('+this.externalAddress+') Node::populateCaches') 
         const existingData = existingNode ? await this.fetchPeerData(existingNode): {}        
-        this.createSystemCaches(existingData);
+        await SystemCache.populateAllCaches(existingData);
     }
 
     async fetchPeerData(existingNode) {
         console.log('======== ('+this.externalAddress+') Node::fetchPeerData. messageLayer is:') 
         console.dir(this.messageLayer)
         // Fetch data from existing node
-        const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);
-        //console.log('======== ('+this.externalAddress+') Node::fetchPeerData created command: ')
-        //console.dir(getPeerData) 
-        // TODO: use the sendmessage and receive message pattern to get this data instead to simplify the MessageLayer.
-        // That means that we need to create a context for the message, and a named callback function stored in the Code system table to handle the reply, when an ack comes.
+        const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
         const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
         console.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: ')
         console.dir(peerData)  
@@ -105,20 +91,32 @@ module.exports = class Node {
 
     async openMessageLayer(transportLayer, raftImplementation) {          
         console.log('======== ('+this.externalAddress+') Node::openMessageLayer')     
-        const messageGroup = await new MessageGroup({raftImplementation});
+        this.createSystemCaches();
+        const messageGroup = await new MessageGroup({raftGroupImplementation: raftImplementation});        
+        console.log('New MessageGroup created...')
+        console.dir(messageGroup)
+        console.log('raftGroupsCache is:')
+        console.dir(this.raftGroupsCache)
+        await this.raftGroupsCache.addRaftGroup(messageGroup);
+        console.log('New MessageGroup added...')
         this.messageLayer = new MessagingLayer(messageGroup, transportLayer);
-        this.messageLayer.listenFor(Node.GET_PEER_DATA, (message) => {
-            // Respond with nodesCache data
-            console.log('======== ('+this.externalAddress+') Node::openMessageLayer got message:') 
-            console.dir(message)
-            this.serializeCaches().then(serializedCaches => {
-                const ack = this.messageLayer.createAckFor(message, serializedCaches);
-                this.messageLayer.sendMessageToNode(ack, message.source);
-            })
-        });
+        this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));
         // Set messageLayer for all system caches
-        //console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
+        console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
         SystemCache.setMessageLayer(this.messageLayer);
+        console.log('======== ('+this.externalAddress+') Node::constructor updating nodes system caches') 
+        this.nodesCache.addNode(this.externalAddress, this.serialize());       
+        return this.addNecessaryPeersToMessageGroup(this.nodesCache, messageGroup);        
+    }
+
+    getPeerDataHandler(message) {
+        // Respond with nodesCache data
+        console.log('======== ('+this.externalAddress+') Node::openMessageLayer got message:') 
+        console.dir(message)
+        SystemCache.serializeAllCaches().then(serializedCaches => {
+            const ack = this.messageLayer.createAckFor(message, serializedCaches);
+            this.messageLayer.sendMessageToNode(ack, message.source);
+        })        
     }
 
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
@@ -133,20 +131,6 @@ module.exports = class Node {
         const morePeers = await this.findRaftPeers(nodesCache);
         // Add morePeers to messageGroup
         await Promise.all(morePeers.map(peer => messageGroup.addPeer(peer)));
-    }
-
-    async serializeCaches() {
-        console.log('======== ('+this.externalAddress+') Node::serializeCaches') 
-        const [nodes, raftGroups, code] = await Promise.all([
-            this.nodesCache.serialize(),
-            this.raftGroupsCache.serialize(),
-            this.codeCache.serialize()
-        ]);
-        return {
-            nodes,
-            raftGroups,
-            code
-        };
     }
 
     async findRaftPeers(nodesCache) {
