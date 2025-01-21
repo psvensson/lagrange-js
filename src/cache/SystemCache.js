@@ -14,8 +14,7 @@ const MessagingLayer = require('../MessagingLayer');
 // The partition raft group lead will then update the rest of the system nodes using the latency hierarchy.
 
 module.exports = class SystemCache {
-    static UPDATE_SYSTEM = 'UPDATE_SYSTEM';
-    static WILDACRD_DESTINATION = '*';
+    static UPDATE_TABLE = 'UPDATE_TABLE';
     static caches = {};
 
     static NODES_CACHE = 'NodesCache';
@@ -106,14 +105,13 @@ module.exports = class SystemCache {
         });
     }
 
-    // Update the system with the cache changes using the messageLayer of the node  
+    // Update the system table tha the cache is caching from
     updateSystem(cacheName, key, value) {
-        const messageLayer = SystemCache.messageLayer
-        //console.log('SystemCache::updateSystem messageLayer:')
-        //console.dir(messageLayer)
-        // Perform update
-        const updateOtherNodes = messageLayer.createCommand(SystemCache.UPDATE_SYSTEM, {cacheName, key, value});
-        messageLayer.sendMessage(updateOtherNodes, SystemCache.WILDACRD_DESTINATION);
+        const messageLayer = SystemCache.messageLayer        
+        const updateTable = messageLayer.createCommand(SystemCache.UPDATE_TABLE, {cacheName, key, value});
+        // The message laye will use the table cache to get the table id and the partitions cache to find which partitions are affected that matches the WHEERE clause of the update
+        const affectedPartitions = messageLayer.findPartitionsFor(this.tableName, messageLayer.createStatementFor(cacheName, key, value));
+        messageLayer.sendMessage(updateTable, affectedPartitions);
     }
 
     // serialize cache into write format, so it can be sent to a new peer
