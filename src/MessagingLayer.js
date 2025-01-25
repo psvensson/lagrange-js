@@ -168,6 +168,16 @@ module.exports = class MessagingLayer {
         this.transportLayer.close();
         this.messageGroup.close();
     }
+
+    findPartitionsFor(tableName, whereClause) {
+        // Find partitions for table name and where clause
+        throw new Error('MessagingLayer::findPartitionsFor not implemented yet ', this);
+    }
+
+    crateWhereStatementFor(cacheName, key, value) {
+        // Create a where statement for the cache name, key and value
+        throw new Error('MessagingLayer::createWhereStatementFor not implemented yet ', this);
+    }   
 }
 
 

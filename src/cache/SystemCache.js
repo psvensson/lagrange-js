@@ -109,8 +109,8 @@ module.exports = class SystemCache {
     updateSystem(cacheName, key, value) {
         const messageLayer = SystemCache.messageLayer        
         const updateTable = messageLayer.createCommand(SystemCache.UPDATE_TABLE, {cacheName, key, value});
-        // The message laye will use the table cache to get the table id and the partitions cache to find which partitions are affected that matches the WHEERE clause of the update
-        const affectedPartitions = messageLayer.findPartitionsFor(this.tableName, messageLayer.createStatementFor(cacheName, key, value));
+        // The message laye will use the table cache to get the table id and the partitions cache to find which partitions are affected that matches the WHERE clause of the update
+        const affectedPartitions = messageLayer.findPartitionsFor(this.tableName, messageLayer.createWhereStatementFor(cacheName, key, value));
         messageLayer.sendMessage(updateTable, affectedPartitions);
     }
 

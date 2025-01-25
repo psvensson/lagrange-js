@@ -17,6 +17,7 @@ module.exports = class PartitionCache extends SystemCache {
             CREATE TABLE IF NOT EXISTS ${this.tableName} (
                 id TEXT PRIMARY KEY, 
                 tableId TEXT,
+                members TEXT,
                 parentPartition TEXT,
                 childPartitions TEXT,
                 spanStart NUMBER,
@@ -37,7 +38,7 @@ module.exports = class PartitionCache extends SystemCache {
 
     addCPartitionGroup(partitionGroup) {
         // insert a new record of the node in the db 
-        const sqlStatement = `INSERT INTO ${this.tableName} (id, tableId, parentPartition, childPartitions, spanStart, spanEnd) VALUES ('${partitionGroup.id}', '${partitionGroup.tableId}', '${partitionGroup.parentPartition}', '${partitionGroup.childPartitions}', ${partitionGroup.spanStart}, ${partitionGroup.spanEnd})`;        
+        const sqlStatement = `INSERT INTO ${this.tableName} (id, tableId, members, parentPartition, childPartitions, spanStart, spanEnd) VALUES ('${partitionGroup.id}', '${partitionGroup.tableId}', , '${partitionGroup.members}' , '${partitionGroup.parentPartition}', '${partitionGroup.childPartitions}', ${partitionGroup.spanStart}, ${partitionGroup.spanEnd})`;        
         return this.run(sqlStatement);
     }
 }
