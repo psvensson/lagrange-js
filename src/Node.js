@@ -32,9 +32,11 @@ module.exports = class Node {
     constructor(args) {
         console.log('================================================== ('+args.externalAddress+') Node Constructor ===============================')
         console.dir(args)
+        
         const { externalAddress, existingNode } = args;
         this.externalAddress = externalAddress;
         this.id = args.id || uuids.v4();
+
         const transportLayer        = args.transportLayer       || new WsTransport('http://' + externalAddress + ':' + Node.SYSTEM_NODE_PORT);
         const raftImplementation    = args.raftImplementation   || new RqliteRaftImplementation(externalAddress + ':' + this.nextAvailablePort(), []);
 
@@ -92,7 +94,7 @@ module.exports = class Node {
 
     // When this initial creation of table and partition objets, creation of partition raft groups and updating of the table and partition system tables are done, the system is ready to go.
 
-    // AFter that we can create the node table (which will create its first partition, which will be stored in the partition cache, et.c.).
+    // After that we can create the node table (which will create its first partition, which will be stored in the partition cache, et.c.).
     // And so on for the rest of the system tables. Each cache maps to a system table.
 
     createSystemTables() {
