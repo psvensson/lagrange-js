@@ -6,8 +6,7 @@ module.exports = class NodesCache extends SystemCache {
     static PING_NODE = 'PING';
 
     constructor(messageLayer, initialData) {
-        super(messageLayer, initialData);
-        this.cacheName = SystemCache.NODES_CACHE;     
+        super(messageLayer, initialData, SystemCache.NODES_CACHE);
     }
 
     getTableName() {
@@ -18,7 +17,7 @@ module.exports = class NodesCache extends SystemCache {
     createTable() {
         const sqlStatement = `
             CREATE TABLE IF NOT EXISTS ${this.tableName} (
-                nodeId TEXT PRIMARY KEY, 
+                id TEXT PRIMARY KEY, 
                 externalAddress TEXT, 
                 latencyZone TEXT, 
                 freeMem REAL, 
@@ -28,18 +27,6 @@ module.exports = class NodesCache extends SystemCache {
         `;
         // Create table using sqlite API and the this.db object
         this.db.exec(sqlStatement);
-    }
-
-    async insertInitialData(initialData) {
-        // The initialData format is the same as the output from the sqlite3 all() function call, just an array of rows
-        // The call looks like this that produced the data; 
-        /*
-        db.all("SELECT * FROM my_table", function(err, rows) {  
-            rows.forEach(function (row) {  
-                console.log(row.col1, row.col2);    // and other columns, if desired
-            })  
-        });*/
-        await Promise.all(initialData.map(row => this.addNode(row.externalAddress, row)));
     }
 
     /*
@@ -54,10 +41,10 @@ module.exports = class NodesCache extends SystemCache {
     * }
     * 
     */
-    async addNode(externalAddress, node) {
+    async addItem(node) {
         console.log('NodesCache::addNode node: ', node)
         // insert a new record of the node in the db 
-        const sqlStatement = `INSERT INTO ${this.tableName} (nodeId, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
+        const sqlStatement = `INSERT INTO ${this.tableName} (id, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
         return this.run(sqlStatement);
     }
 

@@ -26,8 +26,8 @@ module.exports = class SystemCache {
     cacheName = 'Undefined Cache Name';
     static messageLayer = null; // The assigned messagegroup for this node, set a bit after init, but before we need to send anything
 
-    constructor(messageLayer, initialData) {
-        SystemCache.caches[this.cacheName] = this; // Save any instance of a system cache so it can be looked up using the class
+    constructor(messageLayer, initialData, cacheName) {
+        SystemCache.caches[cacheName] = this; // Save any instance of a system cache so it can be looked up using the class
         this.db = new sqlite3.Database(':memory:');   
         this.tableName = this.getTableName()
         this.messageLayer = messageLayer;
@@ -43,32 +43,40 @@ module.exports = class SystemCache {
     }
 
     static setMessageLayer(messageLayer) {        
-        console.log('SystemCache::setMessageLayer setting messageLayer:')
+        //console.log('SystemCache::setMessageLayer setting messageLayer:')
         //console.dir(messageLayer)
         SystemCache.messageLayer = messageLayer;
     }    
 
     static async serializeAllCaches() {
+        console.log('SystemCache::serializeAllCaches. Registered caches are:')
+        console.dir(SystemCache.caches)
         const cacheNames = Object.keys(SystemCache.caches);
-        const serializedCaches = await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].serialize()));
+        const serializedCaches = {};
+        await Promise.all(cacheNames.map(async cacheName => {
+            serializedCaches[cacheName] = await SystemCache.caches[cacheName].serialize();
+        }));
         console.log('------------------------------------------- serializedCaches -------------------------------------------')
         console.dir(serializedCaches)
         return serializedCaches;
     }
 
     static async populateAllCaches(existingData) {
-        console.log('SystemCache::populateAllCaches existingData: ')
-        console.dir(existingData)
+        //console.log('SystemCache::populateAllCaches existingData: '+typeof existingData)
+        //console.dir(existingData)
         const cacheNames = Object.keys(SystemCache.caches);
-        await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(existingData[cacheName] || [])));
+        await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
     }
 
     createTable() {
         throw new Error('Method SystemCache.createTable not implemented in subclass; ', this);
     }
 
-    async insertInitialData(initialData) {
-        throw new Error('Method SystemCache.insertInitialData not implemented in subclass; ', this);
+    async insertInitialData(initialData) {    
+        console.log('----------------------------------------------------------------------------------> RaftGroupsCache::insertInitialData initialData. Existing ${this.cacheName} is: ')
+        await this.debugListContents()
+        console.log('<---------------------------------------------------------------------------------- RaftGroupsCache::insertInitialData')    
+        await Promise.all(initialData.map(row => this.addItem(row)));
     }
 
     getTableName() {
@@ -79,6 +87,8 @@ module.exports = class SystemCache {
     run(sqlStatement) {
         console.log('SystemCache::run sqlStatement: ', sqlStatement)
         if (sqlStatement.includes('undefined')) {
+            console.log('//////////////////////////////////////////////////////////////////////////////////////////////////////////////')
+            console.log(sqlStatement)
             throw new Error('SystemCache::run sqlStatement includes undefined')
         }
         return new Promise((resolve, reject) => {
@@ -90,6 +100,17 @@ module.exports = class SystemCache {
                 }
             });
         });
+    }
+
+    async debugListContents() {
+        const rows = await this.getAll();
+        console.log('SystemCache::debugListContents rows: ');
+        console.dir(rows);
+    }
+
+    getAll() {
+        const sqlStatement = `SELECT * FROM ${this.tableName}`;
+        return this.get(sqlStatement);
     }
 
     // Common method to call this.db.get handling errors and returing promise

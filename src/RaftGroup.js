@@ -8,10 +8,13 @@ module.exports = class RaftGroup {
     interval = 5000;    
 
     constructor(args) {
+        if(!args.members || args.members.length === 0){
+            throw new Error('RaftGroup::constructor: No members in raft group');
+        }
         this.raftGroupImplementation = args.raftGroupImplementation;
         this.id = args.id || uuids.v4();
-        this.members = args.members || [];
-        setTimeout(this.houseKeeping, this.interval);
+        this.members = args.members;
+        this.timer = setTimeout(this.houseKeeping, this.interval);
     }
 
     houseKeeping() {
@@ -26,8 +29,9 @@ module.exports = class RaftGroup {
     }
 
     close() {
-        // Close the raft group
-        throw new Error('RaftGroup::close not implemented in subclass ', this);
+        // cancel settimeout
+        clearTimeout(this.timer);
+        
     }
 }
 

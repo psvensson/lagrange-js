@@ -17,7 +17,7 @@ module.exports = class MessageGroup extends RaftGroup{
         super(args);        
         // Create rqlite table for messages, to hold messageId, messageName, serialized context (if any), name of callback to invoke, creation time, and number of resends
         const sqlStatement = "CREATE TABLE IF NOT EXISTS messages (messageId TEXT PRIMARY KEY, messageName TEXT, context TEXT, callback TEXT, creationTime TEXT, resends INTEGER)";
-        return new Promise((resolve, PromiseRejectionEvent) => {
+        return new Promise((resolve, reject) => {
             this.raftGroupImplementation.executeQuery(sqlStatement).then(() => {
                 resolve(this);
             });
@@ -102,9 +102,10 @@ module.exports = class MessageGroup extends RaftGroup{
        }
     }
 
-    close() {
+    async close() {
         // Close rqlite connection
-        this.raftGroupImplementation.close();
+        super.close()
+        await this.raftGroupImplementation.close();
     }
 
 }

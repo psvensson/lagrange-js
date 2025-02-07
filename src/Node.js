@@ -40,6 +40,8 @@ module.exports = class Node {
         const transportLayer        = args.transportLayer       || new WsTransport('http://' + externalAddress + ':' + Node.SYSTEM_NODE_PORT);
         const raftImplementation    = args.raftImplementation   || new RqliteRaftImplementation(externalAddress + ':' + this.nextAvailablePort(), []);
 
+        this.createSystemCaches();
+
         return (async () => {
             await this.openMessageLayer(transportLayer, raftImplementation);
             await this.populateCaches(existingNode);
@@ -79,7 +81,7 @@ module.exports = class Node {
         }        
     }
 
-    // Each tablle  is parsisted in a partition (which then can be split when needed).
+    // Each table  is parsisted in a partition (which then can be split when needed).
     // Each partition is implemented by a raft group which replicates three (or any odd number) sql dbs. The canonical example is rqlite.
     // When a table is create, the first partition of that table is created at the same time. 
 
@@ -107,35 +109,30 @@ module.exports = class Node {
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
         const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
-        console.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: ')
+        console.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
         console.dir(peerData)  
         return peerData;
     }
 
     async openMessageLayer(transportLayer, raftImplementation) {          
-        console.log('======== ('+this.externalAddress+') Node::openMessageLayer')     
-        this.createSystemCaches();
-        const messageGroup = await new MessageGroup({raftGroupImplementation: raftImplementation});        
-        console.log('New MessageGroup created...')
-        console.dir(messageGroup)
-        console.log('raftGroupsCache is:')
-        console.dir(this.raftGroupsCache)
-        await this.raftGroupsCache.addRaftGroup(messageGroup);
-        console.log('New MessageGroup added...')
+        console.log('======== ('+this.externalAddress+') Node::openMessageLayer')             
+        const messageGroup = await new MessageGroup({
+            raftGroupImplementation: raftImplementation,
+            members: [this.externalAddress]
+        });        
+        await this.raftGroupsCache.addItem(messageGroup);
         this.messageLayer = new MessagingLayer(messageGroup, transportLayer);
         this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));
-        // Set messageLayer for all system caches
-        console.log('======== ('+this.externalAddress+') Node::openMessageLayer setting message layer for system caches') 
-        SystemCache.setMessageLayer(this.messageLayer);
-        console.log('======== ('+this.externalAddress+') Node::constructor updating nodes system caches') 
-        this.nodesCache.addNode(this.externalAddress, this.serialize());       
+        this.nodesCache.addItem(this.serialize());   
+        // Set messageLayer for all system caches        
+        SystemCache.setMessageLayer(this.messageLayer);            
         return this.addNecessaryPeersToMessageGroup(this.nodesCache, messageGroup);        
     }
 
     getPeerDataHandler(message) {
         // Respond with nodesCache data
-        console.log('======== ('+this.externalAddress+') Node::openMessageLayer got message:') 
-        console.dir(message)
+        //console.log('======== ('+this.externalAddress+') Node::getPeerDataHandler got message:') 
+        //console.dir(message)
         SystemCache.serializeAllCaches().then(serializedCaches => {
             const ack = this.messageLayer.createAckFor(message, serializedCaches);
             this.messageLayer.sendMessageToNode(ack, message.source);
@@ -144,7 +141,6 @@ module.exports = class Node {
 
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
         console.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
-
         const foo = ()=>{
             this.codeCache.showContext()
         }
@@ -167,6 +163,12 @@ module.exports = class Node {
         // If one or more peers still missing, create local messagroup raft group peers (with incrementing unique ports) and add them.
         
         return morePeers;
+    }
+
+    async shutdown(){
+        console.log('======== ('+this.externalAddress+') Node::shutdown') 
+        await this.messageLayer.close();
+
     }
     
 }

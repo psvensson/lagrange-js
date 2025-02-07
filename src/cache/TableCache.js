@@ -3,8 +3,7 @@ const SystemCache = require("./SystemCache");
 
 module.exports = class TableCache extends SystemCache {
     constructor(messageLayer, initialData) {
-        super(messageLayer, initialData);
-        this.cacheName = SystemCache.TABLE_CACHE;
+        super(messageLayer, initialData, SystemCache.TABLE_CACHE);
     }
 
     getTableName() {
@@ -29,11 +28,7 @@ module.exports = class TableCache extends SystemCache {
         this.db.exec(sqlStatement);
     }
 
-    async insertInitialData(initialData) {
-        await Promise.all(initialData.map(row => this.addTable(row)));
-    }
-
-    addTable(table) {
+    addItem(table) {
         console.log('TableCache::addTable table: ')
         console.dir(table)
         const sqlStatement = `INSERT INTO ${this.tableName} (id, name, schema, partitions) VALUES ('${table.id}', '${table.name}', '${table.schema}', '${table.partitions}')`;

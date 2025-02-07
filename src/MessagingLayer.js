@@ -1,7 +1,6 @@
 const uuids = require('uuid');
 const SystemCache = require('./cache/SystemCache');
 
-
 // Overview:
 
 // The MessagelAyer is used by any logic in any node class which needs to send messages to other nodes in the system.
@@ -49,7 +48,7 @@ module.exports = class MessagingLayer {
     }
     
     sendMessageToNode(message, destination, context, callbackFunctionName) {
-        this.messageGroup.saveMessage(message, context, callbackFunctionName).then((res) => {
+        this.messageGroup.saveMessage(message, context || {}, callbackFunctionName || '<none>').then((res) => {
             console.log('............................ sendMessage saved message:')
             console.dir(res);
             this.transportLayer.transportMessage(message, destination);
@@ -93,7 +92,7 @@ module.exports = class MessagingLayer {
         const randomMemberId = members[randomIndex];
         const nodesCache = SystemCache.caches[SystemCache.NODES];
         const randomMember = nodesCache.getNodeById(randomMemberId);
-        this.sendMessageToNode(message, randomMember.externalAddress, context, callbackFunctionName);
+        this.sendMessageToNode(message, randomMember.externalAddress, context || {}, callbackFunctionName || '<none>');
     }
 
 

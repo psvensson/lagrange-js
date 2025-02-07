@@ -29,6 +29,7 @@ module.exports = class PartitionGroup extends RaftGroup{
 
     // Close the partition group
     close(){
+        super.close();
         this.partitionImplementation.close();
     }
 }

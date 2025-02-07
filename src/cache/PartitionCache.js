@@ -4,8 +4,7 @@ const SystemCache = require('./SystemCache');
 // Each partition also has a raft group, which is stored in the raftgroups table.
 module.exports = class PartitionCache extends SystemCache {
     constructor(messageLayer, initialData) {
-        super(messageLayer, initialData);
-        this.cacheName = SystemCache.CODE_CACHE;    
+        super(messageLayer, initialData, SystemCache.PARTITION_CACHE);  
     }
 
     getTableName() {
@@ -30,13 +29,7 @@ module.exports = class PartitionCache extends SystemCache {
         this.db.exec(sqlStatement);
     }
 
-    async insertInitialData(initialData) {
-        // The initialData format is the same as the output from the sqlite3 all() function call, just an array of rows
-        // The call looks like this that produced the data;        
-        await Promise.all(initialData.map(row => this.addPartitionGroup(row)));
-    }
-
-    addCPartitionGroup(partitionGroup) {
+    addItem(partitionGroup) {
         // insert a new record of the node in the db 
         const sqlStatement = `INSERT INTO ${this.tableName} (id, tableId, members, parentPartition, childPartitions, spanStart, spanEnd) VALUES ('${partitionGroup.id}', '${partitionGroup.tableId}', , '${partitionGroup.members}' , '${partitionGroup.parentPartition}', '${partitionGroup.childPartitions}', ${partitionGroup.spanStart}, ${partitionGroup.spanEnd})`;        
         return this.run(sqlStatement);
