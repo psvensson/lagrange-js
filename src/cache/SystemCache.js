@@ -30,9 +30,13 @@ module.exports = class SystemCache {
 
     constructor(messageLayer, initialData, cacheName) {
         SystemCache.caches[cacheName] = this; // Save any instance of a system cache so it can be looked up using the class
+        this.messageLayer = messageLayer;
+        //logger.log('SystemCache::constructor cacheName: '+ cacheName)
+        //logger.dir(messageLayer)
+        this.cacheName = cacheName;
         this.db = new sqlite3.Database(':memory:');   
         this.tableName = this.getTableName()
-        this.messageLayer = messageLayer;
+        
         // TODO: We should not have both an internal sqlite db and a hastable for the same thing, hmm?
         if(initialData) {
             logger.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&6 SystemCache::constructor inserting initial data');
@@ -45,14 +49,14 @@ module.exports = class SystemCache {
     }
 
     static setMessageLayer(messageLayer) {        
-        //logger.log('SystemCache::setMessageLayer setting messageLayer:')
+        logger.log('SystemCache::setMessageLayer setting messageLayer address is: '+messageLayer.transportLayer.externalAddress)
         //logger.dir(messageLayer)
         SystemCache.messageLayer = messageLayer;
     }    
 
     static async serializeAllCaches() {
         logger.log('SystemCache::serializeAllCaches. Registered caches are:')
-        logger.dir(SystemCache.caches)
+        logger.dir(Object.keys(SystemCache.caches))
         const cacheNames = Object.keys(SystemCache.caches);
         const serializedCaches = {};
         await Promise.all(cacheNames.map(async cacheName => {
@@ -70,15 +74,25 @@ module.exports = class SystemCache {
         await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
     }
 
+    getAddress() {  
+        //logger.log('----- getAddress')
+        //logger.dir(this.messageLayer)
+        return this.messageLayer.transportLayer.externalAddress
+    }
+
     createTable() {
         throw new Error('Method SystemCache.createTable not implemented in subclass; ', this);
     }
 
     async insertInitialData(initialData) {    
-        logger.log('----------------------------------------------------------------------------------> RaftGroupsCache::insertInitialData initialData. Existing ${this.cacheName} is: ')
+        logger.log('----------------------------------------------------------------------------------> RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' is: ')
         await this.debugListContents()
         logger.log('<---------------------------------------------------------------------------------- RaftGroupsCache::insertInitialData')    
-        await Promise.all(initialData.map(row => this.addItem(row)));
+        await Promise.all(initialData.map(row => {
+            logger.log('Inserting '+this.getAddress()+': '+this.cacheName+'  row: ');
+            logger.dir(row)
+            return this.addItem(row);
+        }));
     }
 
     getTableName() {
@@ -96,6 +110,7 @@ module.exports = class SystemCache {
         return new Promise((resolve, reject) => {
             this.db.run(sqlStatement, function(err) {
                 if (err) {
+                    logger.error('SystemCache::run error: ', err)
                     reject(err);
                 } else {
                     resolve(this);

@@ -42,10 +42,11 @@ module.exports = class Node {
         const transportLayer        = args.transportLayer       || new WsTransport('http://' + externalAddress + ':' + Node.SYSTEM_NODE_PORT);
         const raftImplementation    = args.raftImplementation   || new RqliteRaftImplementation(externalAddress + ':' + this.nextAvailablePort(), []);
 
-        this.createSystemCaches();
+        
 
         return (async () => {
             await this.openMessageLayer(transportLayer, raftImplementation);
+            this.createSystemCaches();
             await this.populateCaches(existingNode);
             return this;
         })();
@@ -67,9 +68,9 @@ module.exports = class Node {
     }
 
     createSystemCaches(existingData) {
-        this.nodesCache = new NodesCache(existingData ? existingData.nodes : '');
-        this.raftGroupsCache = new RaftGroupsCache(existingData ? existingData.raftGroups : '');
-        this.codeCache = new CodeCache(existingData ? existingData.code : '');
+        this.nodesCache = new NodesCache(this.messageLayer, existingData ? existingData.nodes : '');
+        this.raftGroupsCache = new RaftGroupsCache(this.messageLayer,existingData ? existingData.raftGroups : '');
+        this.codeCache = new CodeCache(this.messageLayer,existingData ? existingData.code : '');
     }
 
     // If existingNode provided, download system informatino and populate caches.
@@ -81,6 +82,11 @@ module.exports = class Node {
         } else {
             this.createSystemTables()
         }        
+        await this.nodesCache.addItem(this.serialize());   
+        await this.raftGroupsCache.addItem(this.messageGroup);
+        // Set messageLayer for all system caches        
+        SystemCache.setMessageLayer(this.messageLayer);            
+        return this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageGroup);     
     }
 
     // Each table  is parsisted in a partition (which then can be split when needed).
@@ -107,7 +113,7 @@ module.exports = class Node {
 
     async fetchPeerData(existingNode) {
         logger.log('======== ('+this.externalAddress+') Node::fetchPeerData. messageLayer is:') 
-        logger.dir(this.messageLayer)
+        //logger.dir(this.messageLayer)
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
         const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
@@ -118,17 +124,14 @@ module.exports = class Node {
 
     async openMessageLayer(transportLayer, raftImplementation) {          
         logger.log('======== ('+this.externalAddress+') Node::openMessageLayer')             
-        const messageGroup = await new MessageGroup({
+        this.messageGroup = await new MessageGroup({
             raftGroupImplementation: raftImplementation,
             members: [this.externalAddress]
         });        
-        await this.raftGroupsCache.addItem(messageGroup);
-        this.messageLayer = new MessagingLayer(messageGroup, transportLayer);
+        
+        this.messageLayer = new MessagingLayer(this.messageGroup, transportLayer);
         this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));
-        this.nodesCache.addItem(this.serialize());   
-        // Set messageLayer for all system caches        
-        SystemCache.setMessageLayer(this.messageLayer);            
-        return this.addNecessaryPeersToMessageGroup(this.nodesCache, messageGroup);        
+           
     }
 
     getPeerDataHandler(message) {
@@ -137,6 +140,7 @@ module.exports = class Node {
         //logger.dir(message)
         SystemCache.serializeAllCaches().then(serializedCaches => {
             const ack = this.messageLayer.createAckFor(message, serializedCaches);
+            // sendMessageToNode(message, destination, context, callbackFunctionName)
             this.messageLayer.sendMessageToNode(ack, message.source);
         })        
     }

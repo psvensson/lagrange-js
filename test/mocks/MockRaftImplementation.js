@@ -12,7 +12,7 @@ module.exports = class MockRaftImplementation extends RaftImplementation {
     }
 
     executeQuery(query){
-        logger.log('MockRaftImplementation::executeQuery query: ', query)
+        logger.log('MockRaftImplementation::executeQuery query: %o ', query)
         return new Promise((resolve, reject) => {
             this.db.all(query, [], (err, rows) => {
                 if (err) {

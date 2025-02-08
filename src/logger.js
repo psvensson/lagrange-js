@@ -1,11 +1,9 @@
-const { createLogger, format, transports } = require('winston');
+const { createLogger, format, transports, error } = require('winston');
 
 const winston = createLogger({
     level: 'info',
     format: format.combine(
-      format.timestamp({
-        format: 'YYYY-MM-DD HH:mm:ss'
-      }),
+      //format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
       format.errors({ stack: true }),
       format.splat(),
       format.colorize(),
@@ -22,18 +20,18 @@ const winston = createLogger({
       new transports.Console({
         format: format.combine(
           
-          
+          format.timestamp(),
           format.colorize({ all: true }),
-          
-          format.json(),     
-             
           format.simple(), 
-          format.timestamp({
-            format: 'YYYY-MM-DD HH:mm:ss'
-          }),
+          //format.json(),     
+             
+          //
+         
           //format.prettyPrint(), 
           //format.errors({ stack: true }),
-          
+          format.printf(({ timestamp, level, message, label }) => {
+            return `${timestamp} ${level}: ${message}`;
+          })
         )
       })
     ]
@@ -45,6 +43,9 @@ const winston = createLogger({
     },
     dir: (message) => {
       winston.log('info', '%o',  message);
+    },
+    error: (message) => {
+      winston.log('error', message);
     }
 }
 

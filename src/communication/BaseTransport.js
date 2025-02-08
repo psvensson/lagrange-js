@@ -1,11 +1,11 @@
 const logger = require('../logger');
 module.exports = class BaseTransport {
     constructor(address) {
-        this.address   = address;
+        this.externalAddress   = address;
     }
 
     getAddress() {
-        return this.address
+        return this.externalAddress
     }
   
 

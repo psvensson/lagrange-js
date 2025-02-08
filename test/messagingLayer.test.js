@@ -1,12 +1,12 @@
-const logger = requuire('../src/logger');
+const logger = require('../src/logger');
 
 const { createNode } = require('./mocks/NodeHelper');
 
 test('Test MessageLayer', async () => {  
 
     const node1 = await createNode();
-    logger.log('------------------------------- test node1 is:')
-    logger.dir(node1)    
+    //logger.log('------------------------------- test node1 is:')
+    //logger.dir(node1)    
 
     const node2 = await createNode({
         existingNode: node1.externalAddress

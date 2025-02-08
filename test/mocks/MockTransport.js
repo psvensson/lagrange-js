@@ -27,7 +27,12 @@ module.exports = class MockTransport extends BaseTransport {
   }
 
   async transportMessage(message, destination) {
-    logger.log('MockTransport::transportMessage', message, destination)       
+    logger.log('MockTransport::transportMessage to destination: '+destination)       
+    logger.dir(message)
+    if(!destination) {
+      logger.error('MockTransport::transportMessage destination is undefined')
+      throw new Error('destination is undefined')
+    }
     if(destination === SystemCache.WILDACRD_DESTINATION) {
         // If the destination is a wildcard, call the receive callback of all the receivers
       logger.log('MockTransport not implementing wildcard destination')

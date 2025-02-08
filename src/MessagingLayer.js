@@ -20,8 +20,8 @@ module.exports = class MessagingLayer {
 
     // TODO: Remove the need for transport here (and also remove the sendMessageAndWaitForAck method so there is only one way to send messages)
     constructor(messageGroup, transportLayer) {
-        //logger.log('MessagingLayer constructor. transportLayer is;')
-        //logger.dir(transportLayer);
+        logger.log('MessagingLayer constructor. transportLayer is;')
+        logger.dir(transportLayer);
         this.messageGroup = messageGroup;
         this.messageGroup.setHouseKeepingCallback(this.houseKeeping);
         this.transportLayer = transportLayer;
@@ -33,7 +33,7 @@ module.exports = class MessagingLayer {
     createCommand(messageName, data) {
         return {
             requestId: uuids.v4(),
-            source: this.transportLayer.address,
+            source: this.transportLayer.externalAddress,
             messageName: messageName,
             data: data
         }
@@ -43,7 +43,7 @@ module.exports = class MessagingLayer {
         return {
             requestId: uuids.v4(),
             originalRequestId: message.requestId,
-            source: this.transportLayer.address,
+            source: this.transportLayer.externalAddress,
             messageName: 'ACK',
             data: result
         }
@@ -67,6 +67,7 @@ module.exports = class MessagingLayer {
 
     // An async version of sendMessage which does not use the transport layer, but instead sets up a listener for the specific message name and waits for the ack to be received
     async sendRpc(message, destination, context, callbackFunctionName) {
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc');
         return new Promise((resolve, reject) => {
             this.rpcCallbacks[message.requestId] = (message) => {
                 this.rpcCallbacks[message.requestId] = null;
@@ -77,6 +78,7 @@ module.exports = class MessagingLayer {
     }
 
     sendMessageToRaftGroup(message, context, callbackFunctionName, raftGroupId) {
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendMessageToRaftGroup');
         const raftGroupCache = SystemCache.caches[SystemCache.RAFT_GROUPS];
         const raftGroup = raftGroupCache.getRaftGroupById(raftGroupId);
         // Select one of the node ids randomly and look that up in the nodes cache
@@ -101,13 +103,13 @@ module.exports = class MessagingLayer {
     listenFor(messagename, handler) {
         // Register handler for message name
         this.handlers[messagename] = handler;
-        //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.listenFor Registered handler for message name: ' + messagename);
+        //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.listenFor Registered handler for message name: ' + messagename);
         //logger.dir(this.handlers)
     }
 
     //TODO: It seems like the messages are empty, so we need to find the original message by the originalRequestId
     async receiveAck(message) {
-        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
         logger.dir(message);
         logger.log('unsafecallbacks are:')
         logger.dir(this.rpcCallbacks);

@@ -24,8 +24,8 @@ module.exports = class MockRunnerService extends RaftRunnerService{
                         }
                         reject(err)
                     } else {
-                        console.log('.... MockRunnerServiceSQL StateMachine handle: success; ', this)
-                        console.dir(rows)
+                        logger.log('.... MockRunnerServiceSQL StateMachine handle: success; ', this)
+                        logger.dir(rows)
                         if(this.stateChangedCallback){
                             this.stateChangedCallback(query, rows)
                         }
@@ -38,7 +38,7 @@ module.exports = class MockRunnerService extends RaftRunnerService{
 
     // Not used at the moment, since we're always the leader, so should not be called. Just keep an eye on it
     async routeQueryToLeader(query) {
-        console.log('.... MockRunnerService --- routeQueryToLeader')        
+        logger.log('.... MockRunnerService --- routeQueryToLeader')        
     }
 
     
