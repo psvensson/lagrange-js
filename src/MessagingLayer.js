@@ -1,5 +1,7 @@
 const uuids = require('uuid');
+
 const SystemCache = require('./cache/SystemCache');
+const logger = require('./logger');
 
 // Overview:
 
@@ -18,8 +20,8 @@ module.exports = class MessagingLayer {
 
     // TODO: Remove the need for transport here (and also remove the sendMessageAndWaitForAck method so there is only one way to send messages)
     constructor(messageGroup, transportLayer) {
-        //console.log('MessagingLayer constructor. transportLayer is;')
-        //console.dir(transportLayer);
+        //logger.log('MessagingLayer constructor. transportLayer is;')
+        //logger.dir(transportLayer);
         this.messageGroup = messageGroup;
         this.messageGroup.setHouseKeepingCallback(this.houseKeeping);
         this.transportLayer = transportLayer;
@@ -49,8 +51,8 @@ module.exports = class MessagingLayer {
     
     sendMessageToNode(message, destination, context, callbackFunctionName) {
         this.messageGroup.saveMessage(message, context || {}, callbackFunctionName || '<none>').then((res) => {
-            console.log('............................ sendMessage saved message:')
-            console.dir(res);
+            logger.log('............................ sendMessage saved message:')
+            logger.dir(res);
             this.transportLayer.transportMessage(message, destination);
         });
     }
@@ -99,16 +101,16 @@ module.exports = class MessagingLayer {
     listenFor(messagename, handler) {
         // Register handler for message name
         this.handlers[messagename] = handler;
-        //console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.listenFor Registered handler for message name: ' + messagename);
-        //console.dir(this.handlers)
+        //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.listenFor Registered handler for message name: ' + messagename);
+        //logger.dir(this.handlers)
     }
 
     //TODO: It seems like the messages are empty, so we need to find the original message by the originalRequestId
     async receiveAck(message) {
-        console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
-        console.dir(message);
-        console.log('unsafecallbacks are:')
-        console.dir(this.rpcCallbacks);
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.address+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
+        logger.dir(message);
+        logger.log('unsafecallbacks are:')
+        logger.dir(this.rpcCallbacks);
         //Find message identified in ack
 	    // If ack contains result, evaluate message context with result
         // Remove from raft group
@@ -118,8 +120,8 @@ module.exports = class MessagingLayer {
         const callback = this.rpcCallbacks[message.originalRequestId] 
         if(!callback) {
             const originalMessage = await this.messageGroup.findMessageByMessageId(message.originalRequestId);
-            console.log('found saved message:')
-            console.dir(originalMessage);
+            logger.log('found saved message:')
+            logger.dir(originalMessage);
             callback = await this.getCallbackFunctionByName(originalMessage.callback);
         }
         callback(message);
@@ -131,12 +133,12 @@ module.exports = class MessagingLayer {
 
     messageReceivedFromTransport(message) {
         /*
-        console.log('+++++++++++++++++++++++++++++++++++++++++++++++++ Message received from transport');
-        console.dir(message);
-        console.log('registered handlers are:')
-        console.dir(this.handlers);
-        console.log('this is:')
-        console.dir(this);
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ Message received from transport');
+        logger.dir(message);
+        logger.log('registered handlers are:')
+        logger.dir(this.handlers);
+        logger.log('this is:')
+        logger.dir(this);
         */
         // If message is an ack, call receiveAck, otherwise call handler
         message.messageName == 'ACK' ? this.receiveAck(message) : this.handlers[message.messageName](message);

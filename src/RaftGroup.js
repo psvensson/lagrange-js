@@ -1,5 +1,7 @@
 const uuids = require('uuid');
 
+const logger = require('./logger');
+
 // THe raftgroups are stored in their own system table.
 module.exports = class RaftGroup {
 

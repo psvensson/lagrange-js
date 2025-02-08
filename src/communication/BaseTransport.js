@@ -1,4 +1,4 @@
-
+const logger = require('../logger');
 module.exports = class BaseTransport {
     constructor(address) {
         this.address   = address;
@@ -10,19 +10,19 @@ module.exports = class BaseTransport {
   
 
     getProtocol() {
-        console.log('*** BaseTransport.getProtocol NOT OVERRIDDEN')
+        logger.log('*** BaseTransport.getProtocol NOT OVERRIDDEN')
     }
 
     registerCallback(callback) {
         this.receiveCallback = callback;
-        //console.log('*** BaseTransport.registerCallback executed')
+        //logger.log('*** BaseTransport.registerCallback executed')
     }
 
     async transportMessage(message, destination) {
-        console.log('*** BaseTransport.send NOT OVERRIDDEN')
+        logger.log('*** BaseTransport.send NOT OVERRIDDEN')
     }
     
     async close() {
-        console.log('*** BaseTransport.close NOT OVERRIDDEN')
+        logger.log('*** BaseTransport.close NOT OVERRIDDEN')
     }
 };

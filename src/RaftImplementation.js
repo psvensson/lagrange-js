@@ -1,4 +1,4 @@
-
+const logger = require('./logger');
 // SUperclass for any actual implementation of Raft with sqlite pasing statements.
 
 module.exports = class RaftImplementation {

@@ -1,5 +1,6 @@
 const BaseTransport = require('../../src/communication/BaseTransport')
 const SystemCache = require('../../src/cache/SystemCache')
+const logger = require('../../src/logger');
 
 const COMMAND_SOCKET_MOCK_PORT = 987654321
 
@@ -26,24 +27,24 @@ module.exports = class MockTransport extends BaseTransport {
   }
 
   async transportMessage(message, destination) {
-    console.log('MockTransport::transportMessage', message, destination)       
+    logger.log('MockTransport::transportMessage', message, destination)       
     if(destination === SystemCache.WILDACRD_DESTINATION) {
         // If the destination is a wildcard, call the receive callback of all the receivers
-      console.log('MockTransport not implementing wildcard destination')
+      logger.log('MockTransport not implementing wildcard destination')
     } else {
       //const extractedAddress = destination.match(/\/\/([^\/]+)/)[1]
-      console.log('MockTransport::transportMessage extractedAddress:', destination)
+      logger.log('MockTransport::transportMessage extractedAddress:', destination)
       // Find the previously registered receiver and call its receive callback
-      //console.log('registered mock nodes are;')
-      //console.dir(MockTransport.localNodes)
+      //logger.log('registered mock nodes are;')
+      //logger.dir(MockTransport.localNodes)
       const found = MockTransport.localNodes[destination]
-      //console.log('found is;')
-      //console.dir(found)
+      //logger.log('found is;')
+      //logger.dir(found)
       found.receiveCallback(message)
     }    
   }
 
   close() {
-    console.log('MockTransport::close (unimplemented)')
+    logger.log('MockTransport::close (unimplemented)')
   }
 }

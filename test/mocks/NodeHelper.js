@@ -2,7 +2,7 @@ const Node = require('../../src/Node');
 
 const MockRaftImplementation = require('./MockRaftImplementation');
 const MockTransport = require('./MockTransport');
-
+const logger = require('../../src/logger');
 
 let mockHostIP = 1;
 

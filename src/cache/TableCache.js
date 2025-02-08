@@ -1,5 +1,5 @@
 const SystemCache = require("./SystemCache");
-
+const logger = require('../logger');
 
 module.exports = class TableCache extends SystemCache {
     constructor(messageLayer, initialData) {
@@ -29,8 +29,8 @@ module.exports = class TableCache extends SystemCache {
     }
 
     addItem(table) {
-        console.log('TableCache::addTable table: ')
-        console.dir(table)
+        logger.log('TableCache::addTable table: ')
+        logger.dir(table)
         const sqlStatement = `INSERT INTO ${this.tableName} (id, name, schema, partitions) VALUES ('${table.id}', '${table.name}', '${table.schema}', '${table.partitions}')`;
         return this.run(sqlStatement)
     }

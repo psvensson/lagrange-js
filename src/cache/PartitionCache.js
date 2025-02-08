@@ -1,4 +1,5 @@
 const SystemCache = require('./SystemCache');
+const logger = require('../logger');
 
 // This cache holds partitions which are store in their own system table.
 // Each partition also has a raft group, which is stored in the raftgroups table.

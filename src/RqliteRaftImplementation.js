@@ -2,6 +2,7 @@ const Docker = require('dockerode');
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 const RaftImplementation = require("./RaftImplementation");
+const logger = require('./logger');
 
 // Starts a new instance of rqlite using Docker on the local node
 module.exports = class RqliteRaftImplementation extends RaftImplementation {
@@ -9,9 +10,9 @@ module.exports = class RqliteRaftImplementation extends RaftImplementation {
     constructor(raftNodeAddress, peerAddresses) {
         // Start a rqlite docker container on the local node, with the raftNodeAddress as external address and peerAddresses as the list of peers
         docker.run('rqlite', ['rqlited', '-raft', '-http-addr', raftNodeAddress, '-raft-addr', raftNodeAddress, '-raft-peers', peerAddresses.join(',')], process.stdout, {name: 'rqlite_${uniqueName}'}, function (err, data, container) {
-            console.log('RqliteRaftImplementation constructor statusCode = ',data.StatusCode);
+            logger.log('RqliteRaftImplementation constructor statusCode = ',data.StatusCode);
             if(err){
-                console.log('RqliteRaftImplementation constructor error = ',err);
+                logger.log('RqliteRaftImplementation constructor error = ',err);
             } else {
                 this.container = container;
             }
@@ -23,14 +24,14 @@ module.exports = class RqliteRaftImplementation extends RaftImplementation {
         if (this.container) {
             this.container.stop((err, data) => {
                 if (err) {
-                    console.log('RqliteRaftImplementation close stop error = ', err);
+                    logger.log('RqliteRaftImplementation close stop error = ', err);
                 } else {
-                    console.log('RqliteRaftImplementation close stop result = ', data);
+                    logger.log('RqliteRaftImplementation close stop result = ', data);
                     this.container.remove((err, data) => {
                         if (err) {
-                            console.log('RqliteRaftImplementation close remove error = ', err);
+                            logger.log('RqliteRaftImplementation close remove error = ', err);
                         } else {
-                            console.log('RqliteRaftImplementation close remove result = ', data);
+                            logger.log('RqliteRaftImplementation close remove result = ', data);
                         }
                     });
                 }
@@ -43,7 +44,7 @@ module.exports = class RqliteRaftImplementation extends RaftImplementation {
         return new Promise((resolve, reject) => {
             this.container.inspect((err, data) => {
                 if (err) {
-                    console.log('RqliteRaftImplementation executeQuery error = ', err);
+                    logger.log('RqliteRaftImplementation executeQuery error = ', err);
                     reject(err);
                 } else {
                     const port = Object.keys(data.NetworkSettings.Ports)[0].split('/')[0];
@@ -53,12 +54,12 @@ module.exports = class RqliteRaftImplementation extends RaftImplementation {
                         AttachStderr: true
                     }, (err, exec) => {
                         if (err) {
-                            console.log('RqliteRaftImplementation executeQuery error = ', err);
+                            logger.log('RqliteRaftImplementation executeQuery error = ', err);
                             reject(err);
                         } else {
                             exec.start((err, stream) => {
                                 if (err) {
-                                    console.log('RqliteRaftImplementation executeQuery error = ', err);
+                                    logger.log('RqliteRaftImplementation executeQuery error = ', err);
                                     reject(err);
                                 } else {
                                     let output = '';

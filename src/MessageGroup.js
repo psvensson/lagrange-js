@@ -39,16 +39,16 @@ module.exports = class MessageGroup extends RaftGroup{
     listTables(){
         const sqlStatement = "SELECT name FROM sqlite_master WHERE type='table'";        
         this.raftGroupImplementation.executeQuery(sqlStatement).then((tables) => {
-            console.log('=========================================================================================================== Sqlite tables:')
-            console.log(tables);
+            logger.log('=========================================================================================================== Sqlite tables:')
+            logger.log(tables);
         })
     }
     
     listAllMessages(){
         const sqlStatement = "SELECT * FROM messages";
         this.raftGroupImplementation.executeQuery(sqlStatement).then((messages) => {
-            console.log('=========================================================================================================== All messages:')
-            console.log(messages);
+            logger.log('=========================================================================================================== All messages:')
+            logger.log(messages);
         })
     }
 
@@ -62,7 +62,7 @@ module.exports = class MessageGroup extends RaftGroup{
     }
 
     findMessageByMessageId(messageId) {
-        console.log('-------------------------------------------findMessageByMessageId-------------------------------------------')
+        logger.log('-------------------------------------------findMessageByMessageId-------------------------------------------')
         this.listAllMessages();
         // Find message in rqlite table and return it
         const sqlStatement = `SELECT * FROM messages WHERE messageId = "${messageId}"`;

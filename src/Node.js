@@ -8,6 +8,8 @@ const SystemCache = require('./cache/SystemCache');
 const MessagingLayer = require('./MessagingLayer');
 const WsTransport = require('./communication/WsTransport');
 
+const logger = require('./logger');
+
 // The nodes are stored in their own system table.
 // Nodes aren't created anywhere else but in the process of a new node starting up, so there's no need for a static create method here.
 
@@ -30,8 +32,8 @@ module.exports = class Node {
     codeCache = null;
 
     constructor(args) {
-        console.log('================================================== ('+args.externalAddress+') Node Constructor ===============================')
-        console.dir(args)
+        logger.log('================================================== ('+args.externalAddress+') Node Constructor ===============================')
+        logger.dir(args)
         
         const { externalAddress, existingNode } = args;
         this.externalAddress = externalAddress;
@@ -73,7 +75,7 @@ module.exports = class Node {
     // If existingNode provided, download system informatino and populate caches.
     // If not, then we're the very first node and we're responsible to create the system tables (and partitions).
     async populateCaches(existingNode) {        
-        console.log('======== ('+this.externalAddress+') Node::populateCaches') 
+        logger.log('======== ('+this.externalAddress+') Node::populateCaches') 
         if(existingNode) {
             await SystemCache.populateAllCaches(await this.fetchPeerData(existingNode))
         } else {
@@ -104,18 +106,18 @@ module.exports = class Node {
     }
 
     async fetchPeerData(existingNode) {
-        console.log('======== ('+this.externalAddress+') Node::fetchPeerData. messageLayer is:') 
-        console.dir(this.messageLayer)
+        logger.log('======== ('+this.externalAddress+') Node::fetchPeerData. messageLayer is:') 
+        logger.dir(this.messageLayer)
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
         const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
-        console.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
-        console.dir(peerData)  
+        logger.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
+        logger.dir(peerData)  
         return peerData;
     }
 
     async openMessageLayer(transportLayer, raftImplementation) {          
-        console.log('======== ('+this.externalAddress+') Node::openMessageLayer')             
+        logger.log('======== ('+this.externalAddress+') Node::openMessageLayer')             
         const messageGroup = await new MessageGroup({
             raftGroupImplementation: raftImplementation,
             members: [this.externalAddress]
@@ -131,8 +133,8 @@ module.exports = class Node {
 
     getPeerDataHandler(message) {
         // Respond with nodesCache data
-        //console.log('======== ('+this.externalAddress+') Node::getPeerDataHandler got message:') 
-        //console.dir(message)
+        //logger.log('======== ('+this.externalAddress+') Node::getPeerDataHandler got message:') 
+        //logger.dir(message)
         SystemCache.serializeAllCaches().then(serializedCaches => {
             const ack = this.messageLayer.createAckFor(message, serializedCaches);
             this.messageLayer.sendMessageToNode(ack, message.source);
@@ -140,7 +142,7 @@ module.exports = class Node {
     }
 
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
-        console.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
+        logger.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
         const foo = ()=>{
             this.codeCache.showContext()
         }
@@ -153,7 +155,7 @@ module.exports = class Node {
     }
 
     async findRaftPeers(nodesCache) {
-        console.log('======== ('+this.externalAddress+') Node::findRaftPeers') 
+        logger.log('======== ('+this.externalAddress+') Node::findRaftPeers') 
         // Wee need two more peers.
         const morePeers = []
         // Find or create our latency zone
@@ -166,7 +168,7 @@ module.exports = class Node {
     }
 
     async shutdown(){
-        console.log('======== ('+this.externalAddress+') Node::shutdown') 
+        logger.log('======== ('+this.externalAddress+') Node::shutdown') 
         await this.messageLayer.close();
 
     }

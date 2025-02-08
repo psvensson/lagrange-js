@@ -1,4 +1,5 @@
 const SystemCache = require('./SystemCache');
+const logger = require('../logger');
 
 module.exports = class NodesCache extends SystemCache {
 
@@ -42,7 +43,7 @@ module.exports = class NodesCache extends SystemCache {
     * 
     */
     async addItem(node) {
-        console.log('NodesCache::addNode node: ', node)
+        logger.log('NodesCache::addNode node: ', node)
         // insert a new record of the node in the db 
         const sqlStatement = `INSERT INTO ${this.tableName} (id, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
         return this.run(sqlStatement);

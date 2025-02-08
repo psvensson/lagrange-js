@@ -1,6 +1,8 @@
 const RaftImplementation = require('../../src/RaftImplementation');
 const sqlite3 = require('sqlite3');
 
+const logger = require('../../src/logger');
+
 // An subclass of RaftImplementation which uses an in-memory sqlite database to execute queries
 module.exports = class MockRaftImplementation extends RaftImplementation {
     
@@ -10,7 +12,7 @@ module.exports = class MockRaftImplementation extends RaftImplementation {
     }
 
     executeQuery(query){
-        console.log('MockRaftImplementation::executeQuery query: ', query)
+        logger.log('MockRaftImplementation::executeQuery query: ', query)
         return new Promise((resolve, reject) => {
             this.db.all(query, [], (err, rows) => {
                 if (err) {

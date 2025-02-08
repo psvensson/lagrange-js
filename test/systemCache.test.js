@@ -1,3 +1,6 @@
+const logger = require('../src/logger');
+
+
 // Test to verify functionality of the System Cache and its subclasses
 const { createNode } = require('./mocks/NodeHelper');
 const SystemCache = require('../src/cache/SystemCache');

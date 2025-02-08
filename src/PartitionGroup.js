@@ -1,5 +1,7 @@
 const { Parser } = require('node-sql-parser');
+
 const RaftGroup = require('./RaftGroup');
+const logger = require('./logger');
 
 // The PartitionGroup represents a partition or shard of a syetm table. Each system table will have just one partition to start with (ordered by the primary key).
 // As configurable thresholds are reached, a partition is split into two new ones. each partition knows about its parent and children.

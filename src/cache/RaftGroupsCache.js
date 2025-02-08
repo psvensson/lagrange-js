@@ -1,4 +1,5 @@
 const SystemCache = require('./SystemCache');
+const logger = require('../logger');
 
 // This is a cache for all known raft groups, message groups, partitions or future use cases
 module.exports = class RaftGroupsCache extends SystemCache {
@@ -25,8 +26,8 @@ module.exports = class RaftGroupsCache extends SystemCache {
     }    
 
     addItem(raftGroup) {
-        console.log('RaftGroupsCache::addRaftGroup raftGroup: ')
-        console.dir(raftGroup)
+        logger.log('RaftGroupsCache::addRaftGroup raftGroup: ')
+        logger.dir(raftGroup)
         // INsert a new record of the raft group in the db and then call updateSystem
         const sqlStatement = `INSERT INTO ${this.tableName} (id, type, members) VALUES ('${raftGroup.id}', '${raftGroup.type}', '${raftGroup.members}')`;
         return this.run(sqlStatement)

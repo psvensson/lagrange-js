@@ -1,5 +1,7 @@
 const { Parser } = require('node-sql-parser');
 
+const logger = require('./logger');
+
 // Overview:
 // The PartitionLayer  is a service which receives commands from any other service in the system which need to run queries
 // on this specific partition of a table. The partition layer will then execute the query on the partition and return the result.

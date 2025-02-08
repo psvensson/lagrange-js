@@ -1,4 +1,5 @@
 const SystemCache = require('./SystemCache');
+const logger = require('../logger');
 
 module.exports = class CodeCache extends SystemCache {
     constructor(messageLayer, initialData) {
@@ -34,7 +35,7 @@ module.exports = class CodeCache extends SystemCache {
         const error = new Error('fakeError')
         // Extract the stack trace and split it into individual lines
         const stackTrace = error.stack?.split('\n')
-        console.log('+++++++++++++++++++++++++++++++++++++++++++++ stack trace (DEBUG Test) +++++++++++++++++++++++++++++++++++++++++++++')
-        console.log(stackTrace)
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++ stack trace (DEBUG Test) +++++++++++++++++++++++++++++++++++++++++++++')
+        logger.log(stackTrace)
     }
 }
