@@ -45,13 +45,13 @@ module.exports = class NodesCache extends SystemCache {
     */
    // TODO: We can verify that the added node is in the databse, but when the cache is seralized, the getAll method returns an empty array. What gives?
     async addItem(node) {
-        logger.log('NodesCache::addItem for '+this.cacheName+' node: ', node)
-        logger.dir(node)
+        //logger.log('NodesCache::addItem for '+this.cacheName+' node: ', node)
+        //logger.dir(node)
         // insert a new record of the node in the db 
         const sqlStatement = `INSERT INTO ${this.tableName} (id, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
         const rv = await this.run(sqlStatement);
-        logger.log('NodesCache::addItem content of cache is now: ')
-        await this.debugListContents()
+        //logger.log('NodesCache::addItem content of cache is now: ')
+        //await this.debugListContents()
         return rv;
     }
 

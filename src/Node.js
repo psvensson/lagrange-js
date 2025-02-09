@@ -48,8 +48,15 @@ module.exports = class Node {
             await this.openMessageLayer(transportLayer, raftImplementation);
             this.createSystemCaches();
             await this.populateCaches(existingNode);
+            await this.addNewlyCreatedThingsToCaches();
+            await this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageGroup); 
             return this;
         })();
+    }
+
+    async addNewlyCreatedThingsToCaches() {
+        await this.caches[SystemCache.RAFT_GROUPS_CACHE].addItem(this.messageGroup);
+        await this.caches[SystemCache.NODES_CACHE].addItem(this.serialize());        
     }
 
     serialize() {
@@ -77,16 +84,8 @@ module.exports = class Node {
     // If not, then we're the very first node and we're responsible to create the system tables (and partitions).
     async populateCaches(existingNode) {        
         logger.log('======== ('+this.externalAddress+') Node::populateCaches') 
-        if(existingNode) {
-            await this.populateAllCaches(await this.fetchPeerData(existingNode))
-        } else {
-            this.createSystemTables()
-        }        
-        logger.warn('======== ('+this.externalAddress+') Node::populateCaches adding node to nodecache')
-        await this.caches[SystemCache.NODES_CACHE].addItem(this.serialize());   
-        logger.warn('======== ('+this.externalAddress+') Node::populateCaches adding node added.')
-        await this.caches[SystemCache.RAFT_GROUPS_CACHE].addItem(this.messageGroup);                
-        return this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageGroup);     
+        existingNode    ? await this.populateAllCaches(await this.fetchPeerData(existingNode)) 
+                        : this.createSystemTables();
     }
 
     // Each table  is parsisted in a partition (which then can be split when needed).
@@ -117,8 +116,8 @@ module.exports = class Node {
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
         const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
-        logger.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
-        logger.dir(peerData)  
+        //logger.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
+        //logger.dir(peerData)  
         return peerData;
     }
 
@@ -128,7 +127,6 @@ module.exports = class Node {
             raftGroupImplementation: raftImplementation,
             members: [this.externalAddress]
         });        
-        
         this.messageLayer = new MessagingLayer(this.messageGroup, transportLayer);
         this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));           
     }
@@ -137,15 +135,13 @@ module.exports = class Node {
         // Respond with nodesCache data
         //logger.log('======== ('+this.externalAddress+') Node::getPeerDataHandler got message:') 
         //logger.dir(message)
-        this.serializeAllCaches().then(serializedCaches => {
-            logger.warn('//////////////////////////////////////////////// getPeerDataHandler serializedCaches')
-            logger.dir(serializedCaches)
+        this.serializeAllCaches().then(serializedCaches => {            
             const ack = this.messageLayer.createAckFor(message, serializedCaches);
-            // sendMessageToNode(message, destination, context, callbackFunctionName)
             this.messageLayer.sendMessageToNode(ack, message.source);
         })        
     }
 
+    // Debug/test method to see how we cangenerated stack traces for code crashing on another node
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
         logger.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
         const foo = ()=>{
@@ -179,22 +175,15 @@ module.exports = class Node {
     }
 
     async serializeAllCaches() {
-        logger.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Node::serializeAllCaches. Registered caches are:')
-        logger.dir(this.caches)
         const serializedCaches = {};
         for (const cacheName of Object.keys(this.caches)) {
             const cacheData = await this.caches[cacheName].serialize();
-            logger.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% cache data for cache '+cacheName+' is:')
-            logger.dir(cacheData)
             serializedCaches[cacheName] = cacheData
         }
         return serializedCaches;
     }
 
     async populateAllCaches(existingData) {
-        logger.log('======== ('+this.externalAddress+') Node::populateAllCaches')
-        logger.dir(existingData)
-        // Iterate over the caches object and call populate on each cache
         const cacheNames = Object.keys(this.caches);
         await Promise.all(cacheNames.map(cacheName => this.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
     }
