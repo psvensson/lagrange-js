@@ -2,6 +2,7 @@ const uuids = require('uuid');
 
 const SystemCache = require('./cache/SystemCache');
 const logger = require('./logger');
+const {performance} = require('perf_hooks');
 
 // Overview:
 
@@ -15,6 +16,7 @@ module.exports = class MessagingLayer {
 
     static MAX_MESSAGE_RESENDS = 5;
     static RPC_TIMEOUT = 1000;
+    static PING_NODE = 'PING_NODE';
 
     rpcCallbacks = {}; //Where we store the local callback functions for callers who need to wait for reply locally instead of letting another node in the mesage raft group load the callback function by name and execute there
 
@@ -26,6 +28,7 @@ module.exports = class MessagingLayer {
         this.messageGroup.setHouseKeepingCallback(this.houseKeeping);
         this.transportLayer = transportLayer;
         this.transportLayer.registerCallback(this.messageReceivedFromTransport.bind(this));
+        this.listenFor(MessagingLayer.PING_NODE, this.handlePingNode.bind(this));
     }
 
     handlers = {}
@@ -57,6 +60,18 @@ module.exports = class MessagingLayer {
         });
     }
 
+    async pingNode(node) {
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.pingNode to node '+node.externalAddress);
+        logger.dir(node);
+        const message = this.createCommand(MessagingLayer.PING_NODE, {});
+        return this.sendRpc(message, node.externalAddress, {}, '<none>');
+    }
+
+    handlePingNode(message) {
+        const ack = this.createAckFor(message, {});
+        this.sendMessageToNode(ack, message.source);
+    }
+
     // TODO: Hmm.. it's not possible to have an async rpc function which can also be distributed of the nodes of a message group of couorse :)
     // This means thatt rpc functionality will lead to breaks in communication if a node goes down for some reason. 
     // That leads to the need to expose the using logic to the need to become stateless and handle replies ouside of the context of calls, or indeed implemente them only
@@ -67,10 +82,15 @@ module.exports = class MessagingLayer {
 
     // An async version of sendMessage which does not use the transport layer, but instead sets up a listener for the specific message name and waits for the ack to be received
     async sendRpc(message, destination, context, callbackFunctionName) {
-        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc');
+        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc to destination '+destination);
+        const then = performance.now();
         return new Promise((resolve, reject) => {
             this.rpcCallbacks[message.requestId] = (message) => {
                 this.rpcCallbacks[message.requestId] = null;
+                const now = performance.now();
+                message.latency = now - then;
+                logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc received ack for message: ' + message.requestId);
+                logger.dir(message);
                 resolve(message.data);
             }
             this.sendMessageToNode(message, destination, context, callbackFunctionName);

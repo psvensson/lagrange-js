@@ -23,7 +23,7 @@ module.exports = class SystemCache {
     static RAFT_GROUPS_CACHE = 'RaftGroupsCache';
     static CODE_CACHE = 'CodeCache';
     static PARTITIONS_CACHE = 'PartitionsCache';    
-
+    static TABLE_CACHE = 'TableCache';
 
     cacheName = 'Undefined Cache Name';    
 
@@ -33,8 +33,7 @@ module.exports = class SystemCache {
         this.cacheName = cacheName;
         this.db = new sqlite3.Database(':memory:');   
         this.tableName = this.getTableName()
-        
-        // TODO: We should not have both an internal sqlite db and a hastable for the same thing, hmm?
+       
         if(initialData) {
             logger.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&6 SystemCache::constructor inserting initial data');
             logger.dir(initialData)
@@ -44,28 +43,6 @@ module.exports = class SystemCache {
         } 
         this.createTable();  
     }
-
-    /*
-    static async serializeAllCaches() {
-        logger.log('SystemCache::serializeAllCaches. Registered caches are:')
-        const cacheNames = SystemCache.getCacheNames();
-        logger.dir(cacheNames)        
-        const serializedCaches = {};
-        await Promise.all(cacheNames.map(async cacheName => {
-            serializedCaches[cacheName] = await SystemCache.caches[cacheName].serialize();
-        }));
-        logger.log('------------------------------------------- serializedCaches -------------------------------------------')
-        logger.dir(serializedCaches)
-        return serializedCaches;
-    }
-
-    static async populateAllCaches(existingData) {
-        //logger.log('SystemCache::populateAllCaches existingData: '+typeof existingData)
-        //logger.dir(existingData)
-        const cacheNames = SystemCache.getCacheNames();
-        await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
-    }
-    */
 
     getAddress() {  
         return this.messageLayer.transportLayer.externalAddress
@@ -115,7 +92,7 @@ module.exports = class SystemCache {
 
     async debugListContents() {
         const rows = await this.getAll();
-        logger.log('SystemCache::debugListContents rows: ');
+        logger.log('SystemCache::debugListContents for '+this.tableName+' rows: ');
         logger.dir(rows);
     }
 

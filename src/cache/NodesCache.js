@@ -63,6 +63,8 @@ module.exports = class NodesCache extends SystemCache {
 
     // Get one random node from a given latency zone
     randomNodeFromLatencyZone(latencyZone) {
+        logger.log('NodesCache::randomNodeFromLatencyZone for '+this.cacheName+' latencyZone: "'+ latencyZone+'"')
+        logger.dir(latencyZone)
         const sqlStatement = `SELECT * FROM ${this.tableName} WHERE latencyZone = '${latencyZone}' ORDER BY RANDOM() LIMIT 1`;
         return this.get(sqlStatement);
     }

@@ -18,6 +18,7 @@ module.exports = class Node {
 
     static GET_PEER_DATA = 'GET_PEER_DATA';
     static SYSTEM_NODE_PORT = 2002 // The single port which is to be used to coommunicated messages between systems
+    static MAX_LATNCY_THRESHOLD = 30; // In ms
 
     externalAddress = '';
     latencyZone = '<initial>';
@@ -47,9 +48,10 @@ module.exports = class Node {
         return (async () => {
             await this.openMessageLayer(transportLayer, raftImplementation);
             this.createSystemCaches();
-            await this.populateCaches(existingNode);
-            await this.addNewlyCreatedThingsToCaches();
+            await this.populateCaches(existingNode);            
             await this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageGroup); 
+            await this.findOrCreateLatencyZone();
+            await this.addNewlyCreatedThingsToCaches();
             return this;
         })();
     }
@@ -84,8 +86,36 @@ module.exports = class Node {
     // If not, then we're the very first node and we're responsible to create the system tables (and partitions).
     async populateCaches(existingNode) {        
         logger.log('======== ('+this.externalAddress+') Node::populateCaches') 
-        existingNode    ? await this.populateAllCaches(await this.fetchPeerData(existingNode)) 
-                        : this.createSystemTables();
+        if(existingNode){
+             await this.populateAllCaches(await this.fetchPeerData(existingNode)) 
+        } else {
+            logger.warn('======== ('+this.externalAddress+') Node::populateCaches we are the first node, only creating system tables') 
+        }
+    }
+
+    // Sort all nodes in teh NodeCache by latencyzone and ping a random node in each zone.
+    // If the ping for a node is lower than MAX_LATNCY_THRESHOLD, we will use the same latcny zone since it means we are close.
+    // If we find no node for any existing zone that is below MAX_LATNCY_THRESHOLD, we will create a new zone.
+    async findOrCreateLatencyZone() {
+        logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone') 
+        // Latency zone is a column property on the node row
+        const nodes = await this.caches[SystemCache.NODES_CACHE].getAll();
+        logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone found nodes: ')
+        logger.dir(nodes)
+        const latencyZones = await this.caches[SystemCache.NODES_CACHE].latencyZones();
+        logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone found latency zones: ')
+        logger.dir(latencyZones)
+        for (const zoneObj of latencyZones) {
+            const zone = zoneObj.latencyZone;
+            const randomNode = (await this.caches[SystemCache.NODES_CACHE].randomNodeFromLatencyZone(zone)) [0];
+            logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone pinging node: ')
+            logger.dir(randomNode)
+            const ping = await this.messageLayer.pingNode(randomNode);
+            if(ping < Node.MAX_LATNCY_THRESHOLD) {
+                this.latencyZone = zone;
+                return;
+            }
+        }
     }
 
     // Each table  is parsisted in a partition (which then can be split when needed).
@@ -141,9 +171,11 @@ module.exports = class Node {
         })        
     }
 
-    // Debug/test method to see how we cangenerated stack traces for code crashing on another node
+    
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
         logger.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
+
+        // Debug/test function to see how we cangenerated stack traces for code crashing on another node
         const foo = ()=>{
             this.caches[SystemCache.CODE_CACHE].showContext()
         }
