@@ -36,6 +36,6 @@ module.exports = class CodeCache extends SystemCache {
         // Extract the stack trace and split it into individual lines
         const stackTrace = error.stack?.split('\n')
         logger.log('+++++++++++++++++++++++++++++++++++++++++++++ stack trace (DEBUG Test) +++++++++++++++++++++++++++++++++++++++++++++')
-        logger.log(stackTrace)
+        logger.dir(stackTrace)
     }
 }

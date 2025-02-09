@@ -109,10 +109,10 @@ module.exports = class MessagingLayer {
 
     //TODO: It seems like the messages are empty, so we need to find the original message by the originalRequestId
     async receiveAck(message) {
-        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
-        logger.dir(message);
-        logger.log('unsafecallbacks are:')
-        logger.dir(this.rpcCallbacks);
+        //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.receiveAck Received ack for message: ' + message.requestId);
+        //logger.dir(message);
+        //logger.log('unsafecallbacks are:')
+        //logger.dir(this.rpcCallbacks);
         //Find message identified in ack
 	    // If ack contains result, evaluate message context with result
         // Remove from raft group

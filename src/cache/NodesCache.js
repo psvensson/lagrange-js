@@ -1,5 +1,6 @@
 const SystemCache = require('./SystemCache');
 const logger = require('../logger');
+const { log } = require('../logger');
 
 module.exports = class NodesCache extends SystemCache {
 
@@ -42,11 +43,16 @@ module.exports = class NodesCache extends SystemCache {
     * }
     * 
     */
+   // TODO: We can verify that the added node is in the databse, but when the cache is seralized, the getAll method returns an empty array. What gives?
     async addItem(node) {
-        logger.log('NodesCache::addNode node: ', node)
+        logger.log('NodesCache::addItem for '+this.cacheName+' node: ', node)
+        logger.dir(node)
         // insert a new record of the node in the db 
         const sqlStatement = `INSERT INTO ${this.tableName} (id, externalAddress, latencyZone, freeMem, freeCpu) VALUES ('${node.id}', '${node.externalAddress}', '${node.latencyZone}', ${node.freeMem}, ${node.freeCpu})`;        
-        return this.run(sqlStatement);
+        const rv = await this.run(sqlStatement);
+        logger.log('NodesCache::addItem content of cache is now: ')
+        await this.debugListContents()
+        return rv;
     }
 
     // Get all unique latency zone ids from the latency zone table

@@ -21,8 +21,8 @@ module.exports = class Node {
 
     externalAddress = '';
     latencyZone = '<initial>';
-    freeMem = 0;
-    freeCpu = 0;
+    freeMem = 100;
+    freeCpu = 100;
 
     messageLayer = null;
     nextPortAvailable = 3200; // For raft groups
@@ -30,6 +30,8 @@ module.exports = class Node {
     nodesCache = null;
     raftGroupsCache = null;
     codeCache = null;
+
+    caches = {} // WE keep the caches instead of trying to store them in the SystemCache superclass
 
     constructor(args) {
         logger.log('================================================== ('+args.externalAddress+') Node Constructor ===============================')
@@ -41,8 +43,6 @@ module.exports = class Node {
 
         const transportLayer        = args.transportLayer       || new WsTransport('http://' + externalAddress + ':' + Node.SYSTEM_NODE_PORT);
         const raftImplementation    = args.raftImplementation   || new RqliteRaftImplementation(externalAddress + ':' + this.nextAvailablePort(), []);
-
-        
 
         return (async () => {
             await this.openMessageLayer(transportLayer, raftImplementation);
@@ -68,9 +68,9 @@ module.exports = class Node {
     }
 
     createSystemCaches(existingData) {
-        this.nodesCache = new NodesCache(this.messageLayer, existingData ? existingData.nodes : '');
-        this.raftGroupsCache = new RaftGroupsCache(this.messageLayer,existingData ? existingData.raftGroups : '');
-        this.codeCache = new CodeCache(this.messageLayer,existingData ? existingData.code : '');
+        this.caches[SystemCache.NODES_CACHE] = new NodesCache(this.messageLayer, existingData ? existingData.nodes : '');
+        this.caches[SystemCache.RAFT_GROUPS_CACHE] = new RaftGroupsCache(this.messageLayer,existingData ? existingData.raftGroups : '');
+        this.caches[SystemCache.CODE_CACHE] = new CodeCache(this.messageLayer,existingData ? existingData.code : '');
     }
 
     // If existingNode provided, download system informatino and populate caches.
@@ -78,14 +78,14 @@ module.exports = class Node {
     async populateCaches(existingNode) {        
         logger.log('======== ('+this.externalAddress+') Node::populateCaches') 
         if(existingNode) {
-            await SystemCache.populateAllCaches(await this.fetchPeerData(existingNode))
+            await this.populateAllCaches(await this.fetchPeerData(existingNode))
         } else {
             this.createSystemTables()
         }        
-        await this.nodesCache.addItem(this.serialize());   
-        await this.raftGroupsCache.addItem(this.messageGroup);
-        // Set messageLayer for all system caches        
-        SystemCache.setMessageLayer(this.messageLayer);            
+        logger.warn('======== ('+this.externalAddress+') Node::populateCaches adding node to nodecache')
+        await this.caches[SystemCache.NODES_CACHE].addItem(this.serialize());   
+        logger.warn('======== ('+this.externalAddress+') Node::populateCaches adding node added.')
+        await this.caches[SystemCache.RAFT_GROUPS_CACHE].addItem(this.messageGroup);                
         return this.addNecessaryPeersToMessageGroup(this.nodesCache, this.messageGroup);     
     }
 
@@ -108,7 +108,7 @@ module.exports = class Node {
     // And so on for the rest of the system tables. Each cache maps to a system table.
 
     createSystemTables() {
-
+        logger.warn('* Nodes.crateSystemTables not implemented yet *')
     }
 
     async fetchPeerData(existingNode) {
@@ -130,15 +130,16 @@ module.exports = class Node {
         });        
         
         this.messageLayer = new MessagingLayer(this.messageGroup, transportLayer);
-        this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));
-           
+        this.messageLayer.listenFor(Node.GET_PEER_DATA, this.getPeerDataHandler.bind(this));           
     }
 
     getPeerDataHandler(message) {
         // Respond with nodesCache data
         //logger.log('======== ('+this.externalAddress+') Node::getPeerDataHandler got message:') 
         //logger.dir(message)
-        SystemCache.serializeAllCaches().then(serializedCaches => {
+        this.serializeAllCaches().then(serializedCaches => {
+            logger.warn('//////////////////////////////////////////////// getPeerDataHandler serializedCaches')
+            logger.dir(serializedCaches)
             const ack = this.messageLayer.createAckFor(message, serializedCaches);
             // sendMessageToNode(message, destination, context, callbackFunctionName)
             this.messageLayer.sendMessageToNode(ack, message.source);
@@ -148,7 +149,7 @@ module.exports = class Node {
     async addNecessaryPeersToMessageGroup(nodesCache, messageGroup) {
         logger.log('======== ('+this.externalAddress+') Node::addnecessaryPeersToMessageGroup');
         const foo = ()=>{
-            this.codeCache.showContext()
+            this.caches[SystemCache.CODE_CACHE].showContext()
         }
         
         foo()
@@ -176,5 +177,27 @@ module.exports = class Node {
         await this.messageLayer.close();
 
     }
+
+    async serializeAllCaches() {
+        logger.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Node::serializeAllCaches. Registered caches are:')
+        logger.dir(this.caches)
+        const serializedCaches = {};
+        for (const cacheName of Object.keys(this.caches)) {
+            const cacheData = await this.caches[cacheName].serialize();
+            logger.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% cache data for cache '+cacheName+' is:')
+            logger.dir(cacheData)
+            serializedCaches[cacheName] = cacheData
+        }
+        return serializedCaches;
+    }
+
+    async populateAllCaches(existingData) {
+        logger.log('======== ('+this.externalAddress+') Node::populateAllCaches')
+        logger.dir(existingData)
+        // Iterate over the caches object and call populate on each cache
+        const cacheNames = Object.keys(this.caches);
+        await Promise.all(cacheNames.map(cacheName => this.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
+    }
+
     
 }

@@ -1,4 +1,4 @@
-const { createLogger, format, transports, error } = require('winston');
+const { createLogger, format, transports, error, warn } = require('winston');
 
 const winston = createLogger({
     level: 'info',
@@ -43,6 +43,9 @@ const winston = createLogger({
     },
     dir: (message) => {
       winston.log('info', '%o',  message);
+    },
+    warn: (message) => {
+      winston.log('warn', message);
     },
     error: (message) => {
       winston.log('error', message);

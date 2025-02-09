@@ -25,14 +25,11 @@ module.exports = class SystemCache {
     static PARTITIONS_CACHE = 'PartitionsCache';    
 
 
-    cacheName = 'Undefined Cache Name';
-    static messageLayer = null; // The assigned messagegroup for this node, set a bit after init, but before we need to send anything
+    cacheName = 'Undefined Cache Name';    
 
-    constructor(messageLayer, initialData, cacheName) {
-        SystemCache.caches[cacheName] = this; // Save any instance of a system cache so it can be looked up using the class
+    constructor(messageLayer, initialData, cacheName) {                    
+        logger.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& SystemCache::constructor cacheName: '+ cacheName)
         this.messageLayer = messageLayer;
-        //logger.log('SystemCache::constructor cacheName: '+ cacheName)
-        //logger.dir(messageLayer)
         this.cacheName = cacheName;
         this.db = new sqlite3.Database(':memory:');   
         this.tableName = this.getTableName()
@@ -48,16 +45,11 @@ module.exports = class SystemCache {
         this.createTable();  
     }
 
-    static setMessageLayer(messageLayer) {        
-        logger.log('SystemCache::setMessageLayer setting messageLayer address is: '+messageLayer.transportLayer.externalAddress)
-        //logger.dir(messageLayer)
-        SystemCache.messageLayer = messageLayer;
-    }    
-
+    /*
     static async serializeAllCaches() {
         logger.log('SystemCache::serializeAllCaches. Registered caches are:')
-        logger.dir(Object.keys(SystemCache.caches))
-        const cacheNames = Object.keys(SystemCache.caches);
+        const cacheNames = SystemCache.getCacheNames();
+        logger.dir(cacheNames)        
         const serializedCaches = {};
         await Promise.all(cacheNames.map(async cacheName => {
             serializedCaches[cacheName] = await SystemCache.caches[cacheName].serialize();
@@ -70,13 +62,12 @@ module.exports = class SystemCache {
     static async populateAllCaches(existingData) {
         //logger.log('SystemCache::populateAllCaches existingData: '+typeof existingData)
         //logger.dir(existingData)
-        const cacheNames = Object.keys(SystemCache.caches);
+        const cacheNames = SystemCache.getCacheNames();
         await Promise.all(cacheNames.map(cacheName => SystemCache.caches[cacheName].insertInitialData(JSON.parse(existingData[cacheName]) || [])));
     }
+    */
 
     getAddress() {  
-        //logger.log('----- getAddress')
-        //logger.dir(this.messageLayer)
         return this.messageLayer.transportLayer.externalAddress
     }
 
@@ -86,6 +77,7 @@ module.exports = class SystemCache {
 
     async insertInitialData(initialData) {    
         logger.log('----------------------------------------------------------------------------------> RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' is: ')
+        logger.dir(initialData)
         await this.debugListContents()
         logger.log('<---------------------------------------------------------------------------------- RaftGroupsCache::insertInitialData')    
         await Promise.all(initialData.map(row => {
@@ -93,6 +85,8 @@ module.exports = class SystemCache {
             logger.dir(row)
             return this.addItem(row);
         }));
+        logger.log('==-------------------------------------------------------------------------------== RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' final cache content after add: ')
+        await this.debugListContents()
     }
 
     getTableName() {
@@ -145,7 +139,7 @@ module.exports = class SystemCache {
 
     // Update the system table tha the cache is caching from
     updateSystem(cacheName, key, value) {
-        const messageLayer = SystemCache.messageLayer        
+        const messageLayer = this.messageLayer        
         const updateTable = messageLayer.createCommand(SystemCache.UPDATE_TABLE, {cacheName, key, value});
         // The message laye will use the table cache to get the table id and the partitions cache to find which partitions are affected that matches the WHERE clause of the update
         const affectedPartitions = messageLayer.findPartitionsFor(this.tableName, messageLayer.createWhereStatementFor(cacheName, key, value));
@@ -154,9 +148,10 @@ module.exports = class SystemCache {
 
     // serialize cache into write format, so it can be sent to a new peer
     async serialize() {
-        // Extract current table in db
-        const sqlStatement = `SELECT * FROM ${this.tableName}`;
-        const result = await this.get(sqlStatement);
+        // Extract current table in db        
+        const result = await this.getAll();
+        logger.log('SystemCache::serialize result for '+this.cacheName+': ')
+        logger.dir(result)
         return JSON.stringify(result);
     }
 
