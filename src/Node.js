@@ -18,7 +18,7 @@ module.exports = class Node {
 
     static GET_PEER_DATA = 'GET_PEER_DATA';
     static SYSTEM_NODE_PORT = 2002 // The single port which is to be used to coommunicated messages between systems
-    static MAX_LATNCY_THRESHOLD = 30; // In ms
+    static MAX_LATENCY_THRESHOLD = 30; // In ms
 
     externalAddress = '';
     latencyZone = '<initial>';
@@ -89,32 +89,29 @@ module.exports = class Node {
         if(existingNode){
              await this.populateAllCaches(await this.fetchPeerData(existingNode)) 
         } else {
-            logger.warn('======== ('+this.externalAddress+') Node::populateCaches we are the first node, only creating system tables') 
+            logger.warn('======== ('+this.externalAddress+') Node::populateCaches we are the first node, Creating first latency zone') 
+            this.latencyZone = uuids.v4();
+            this.createSystemTables();
         }
     }
 
     // Sort all nodes in teh NodeCache by latencyzone and ping a random node in each zone.
-    // If the ping for a node is lower than MAX_LATNCY_THRESHOLD, we will use the same latcny zone since it means we are close.
-    // If we find no node for any existing zone that is below MAX_LATNCY_THRESHOLD, we will create a new zone.
+    // If the ping for a node is lower than MAX_LATENCY_THRESHOLD, we will use the same latcny zone since it means we are close.
+    // If we find no node for any existing zone that is below MAX_LATENCY_THRESHOLD, we will create a new zone.
     async findOrCreateLatencyZone() {
         logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone') 
-        // Latency zone is a column property on the node row
-        const nodes = await this.caches[SystemCache.NODES_CACHE].getAll();
-        logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone found nodes: ')
-        logger.dir(nodes)
-        const latencyZones = await this.caches[SystemCache.NODES_CACHE].latencyZones();
-        logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone found latency zones: ')
-        logger.dir(latencyZones)
+        // Latency zone is a column property on the node row     
+        const latencyZones = await this.caches[SystemCache.NODES_CACHE].latencyZones();        
         for (const zoneObj of latencyZones) {
             const zone = zoneObj.latencyZone;
-            const randomNode = (await this.caches[SystemCache.NODES_CACHE].randomNodeFromLatencyZone(zone)) [0];
-            logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone pinging node: ')
-            logger.dir(randomNode)
-            const ping = await this.messageLayer.pingNode(randomNode);
-            if(ping < Node.MAX_LATNCY_THRESHOLD) {
+            const randomNode = (await this.caches[SystemCache.NODES_CACHE].randomNodeFromLatencyZone(zone)) [0];            
+            const pingReply = await this.messageLayer.pingNode(randomNode);            
+            const ping = pingReply.latency;
+            if(ping < Node.MAX_LATENCY_THRESHOLD) {
+                logger.log('======== ('+this.externalAddress+') Node::findOrCreateLatencyZone found existing zone: '+zone+' since ping was: '+ping)+' which is lower than threshold of: '+Node.MAX_LATENCY_THRESHOLD
                 this.latencyZone = zone;
                 return;
-            }
+            } 
         }
     }
 
@@ -145,10 +142,10 @@ module.exports = class Node {
         //logger.dir(this.messageLayer)
         // Fetch data from existing node
         const getPeerData = this.messageLayer.createCommand(Node.GET_PEER_DATA);        
-        const peerData = await this.messageLayer.sendRpc(getPeerData, existingNode);       
+        const peerDataMessage = await this.messageLayer.sendRpc(getPeerData, existingNode);       
         //logger.log('======== ('+this.externalAddress+') Node::fetchPeerData got reply: '+typeof peerData)
         //logger.dir(peerData)  
-        return peerData;
+        return peerDataMessage.data;
     }
 
     async openMessageLayer(transportLayer, raftImplementation) {          

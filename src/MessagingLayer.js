@@ -54,15 +54,15 @@ module.exports = class MessagingLayer {
     
     sendMessageToNode(message, destination, context, callbackFunctionName) {
         this.messageGroup.saveMessage(message, context || {}, callbackFunctionName || '<none>').then((res) => {
-            logger.log('............................ sendMessage saved message:')
-            logger.dir(res);
+            //logger.log('............................ sendMessage saved message:')
+            //logger.dir(res);
             this.transportLayer.transportMessage(message, destination);
         });
     }
 
     async pingNode(node) {
-        logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.pingNode to node '+node.externalAddress);
-        logger.dir(node);
+        //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.pingNode to node '+node.externalAddress);
+        //logger.dir(node);
         const message = this.createCommand(MessagingLayer.PING_NODE, {});
         return this.sendRpc(message, node.externalAddress, {}, '<none>');
     }
@@ -74,8 +74,8 @@ module.exports = class MessagingLayer {
 
     // TODO: Hmm.. it's not possible to have an async rpc function which can also be distributed of the nodes of a message group of couorse :)
     // This means thatt rpc functionality will lead to breaks in communication if a node goes down for some reason. 
-    // That leads to the need to expose the using logic to the need to become stateless and handle replies ouside of the context of calls, or indeed implemente them only
-    // in the MessageGoup, viz. by saving the contextual data together with the name of the function to be invoked later when an ack is received. 
+    // That leads to the need to expose the using logic to the need to become stateless and handle replies ouside of the context of calls, or indeed implement them only
+    // in the MessageGroup, viz. by saving the contextual data together with the name of the function to be invoked later when an ack is received. 
     // This takes away any possibility for the programming language to do smart things about asynchronicity.
 
     // So the method below should not be used.
@@ -89,9 +89,9 @@ module.exports = class MessagingLayer {
                 this.rpcCallbacks[message.requestId] = null;
                 const now = performance.now();
                 message.latency = now - then;
-                logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc received ack for message: ' + message.requestId);
-                logger.dir(message);
-                resolve(message.data);
+                //logger.log('+++++++++++++++++++++++++++++++++++++++++++++++++ ('+this.transportLayer.externalAddress+') MessagingLayer.sendRpc received ack for message: ' + message.requestId);
+                //logger.dir(message);
+                resolve(message);
             }
             this.sendMessageToNode(message, destination, context, callbackFunctionName);
         });

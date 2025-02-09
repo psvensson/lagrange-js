@@ -54,16 +54,16 @@ module.exports = class SystemCache {
 
     async insertInitialData(initialData) {    
         logger.log('----------------------------------------------------------------------------------> RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' is: ')
-        logger.dir(initialData)
-        await this.debugListContents()
-        logger.log('<---------------------------------------------------------------------------------- RaftGroupsCache::insertInitialData')    
+        //logger.dir(initialData)
+        //await this.debugListContents()
+        //logger.log('<---------------------------------------------------------------------------------- RaftGroupsCache::insertInitialData')    
         await Promise.all(initialData.map(row => {
             logger.log('Inserting '+this.getAddress()+': '+this.cacheName+'  row: ');
             logger.dir(row)
             return this.addItem(row);
         }));
-        logger.log('==-------------------------------------------------------------------------------== RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' final cache content after add: ')
-        await this.debugListContents()
+        //logger.log('==-------------------------------------------------------------------------------== RaftGroupsCache::insertInitialData initialData. ['+this.getAddress()+'] '+this.cacheName+' final cache content after add: ')
+        //await this.debugListContents()
     }
 
     getTableName() {
@@ -127,8 +127,8 @@ module.exports = class SystemCache {
     async serialize() {
         // Extract current table in db        
         const result = await this.getAll();
-        logger.log('SystemCache::serialize result for '+this.cacheName+': ')
-        logger.dir(result)
+        //logger.log('SystemCache::serialize result for '+this.cacheName+': ')
+        //logger.dir(result)
         return JSON.stringify(result);
     }
 
