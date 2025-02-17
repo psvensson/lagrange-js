@@ -1,34 +1,15 @@
 class KeyEncoder {
-    /**
-     * encode(value: any) => Uint8Array
-     *   Convert a JS value to a comparable byte array.
-     */
     encode(value) {
-      throw new Error("Must implement encode() in subclass");
+      throw new Error('Must implement encode() in subclass');
     }
-  
-    /**
-     * decode(bytes: Uint8Array) => any
-     *   Convert the byte array back to the original JS value.
-     */
     decode(bytes) {
-      throw new Error("Must implement decode() in subclass");
+      throw new Error('Must implement decode() in subclass');
     }
-  
-    /**
-     * compareBytes(a: Uint8Array, b: Uint8Array) => number
-     *   Compare two byte arrays lexicographically:
-     *   - return negative if a < b,
-     *   - 0 if equal,
-     *   - positive if a > b.
-     */
     compareBytes(a, b) {
-      // Default: generic lexicographical compare
+      // Default lexicographical compare
       const len = Math.min(a.length, b.length);
       for (let i = 0; i < len; i++) {
-        if (a[i] !== b[i]) {
-          return a[i] - b[i];
-        }
+        if (a[i] !== b[i]) return a[i] - b[i];
       }
       return a.length - b.length;
     }
@@ -41,25 +22,17 @@ class KeyEncoder {
 // In a real system, you'd handle more edge cases (sign, encoding, overflow, etc.).
 
 class IntegerEncoder extends KeyEncoder {
-    /**
-     * In SQLite, INTEGER can be up to 8 bytes in 2's complement.
-     * We'll assume we store everything in a fixed 8-byte big-endian format.
-     */
     encode(value) {
-      // Convert JS Number to 64-bit big-endian
-      // For demo, we assume it's within safe 32-bit range...
+      // Simple 8-byte buffer, ignoring high bits
       const buffer = new ArrayBuffer(8);
-      const dataView = new DataView(buffer);
-      // big-endian putInt32 (upper 4 bytes)
-      dataView.setUint32(0, 0); // zero out high 32 bits for simplicity
-      dataView.setInt32(4, value, false); // false => big-endian
+      const view = new DataView(buffer);
+      view.setInt32(4, value, false); // big-endian
       return new Uint8Array(buffer);
     }
   
     decode(bytes) {
-      const dataView = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      // ignoring high 4 bytes for simplicity
-      return dataView.getInt32(4, false); // big-endian
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      return view.getInt32(4, false); // big-endian
     }
   }
   
@@ -136,6 +109,7 @@ class IntegerEncoder extends KeyEncoder {
   }
 
   module.exports = {
+    KeyEncoder,
     IntegerEncoder,
     RealEncoder,
     CustomTextEncoder,
