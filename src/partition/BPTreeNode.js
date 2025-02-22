@@ -1,14 +1,13 @@
 module.exports = class BPTreeNode {
-    constructor(leaf = false) {
-      this.leaf = leaf;
-      this.keys = [];      // always sorted array of encoded keys
-      this.children = [];  // used if internal node => array of child pointers (BPTreeNode)
-      this.records = [];   // used if leaf => array of row pointers
-      this.nextLeaf = null; // optional link to next leaf
-    }
-  
-    get size() {
-      return this.keys.length;
-    }
+  constructor(leaf = false) {
+    this.leaf = leaf;
+    this.keys = [];       // if leaf=true, data keys; if leaf=false, separator keys
+    this.records = [];    // if leaf=true, parallel array of rowPointers
+    this.children = [];   // if leaf=false, array of child nodes
+    this.nextLeaf = null; // simple leaf chain pointer
   }
+  get size() {
+    return this.keys.length;
+  }
+}
   

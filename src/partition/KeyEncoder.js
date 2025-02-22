@@ -1,20 +1,23 @@
 class KeyEncoder {
-    encode(value) {
-      throw new Error('Must implement encode() in subclass');
-    }
-    decode(bytes) {
-      throw new Error('Must implement decode() in subclass');
-    }
-    compareBytes(a, b) {
-      // Default lexicographical compare
-      const len = Math.min(a.length, b.length);
-      for (let i = 0; i < len; i++) {
-        if (a[i] !== b[i]) return a[i] - b[i];
-      }
-      return a.length - b.length;
-    }
+  encode(value) {
+    throw new Error('Must implement encode() in subclass');
+  }
+  decode(bytes) {
+    throw new Error('Must implement decode() in subclass');
   }
 
+  /**
+   * Lexicographical compare of two Uint8Arrays.
+   * negative if a < b, 0 if equal, positive if a > b
+   */
+  compareBytes(a, b) {
+    const len = Math.min(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      if (a[i] !== b[i]) return a[i] - b[i];
+    }
+    return a.length - b.length;
+  }
+}
 /**********************************************
  * Concrete Encoders for SQLite-like Types
  **********************************************/
@@ -22,19 +25,22 @@ class KeyEncoder {
 // In a real system, you'd handle more edge cases (sign, encoding, overflow, etc.).
 
 class IntegerEncoder extends KeyEncoder {
-    encode(value) {
-      // Simple 8-byte buffer, ignoring high bits
-      const buffer = new ArrayBuffer(8);
-      const view = new DataView(buffer);
-      view.setInt32(4, value, false); // big-endian
-      return new Uint8Array(buffer);
-    }
-  
-    decode(bytes) {
-      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      return view.getInt32(4, false); // big-endian
-    }
+  /** 
+   * We'll store a 32-bit integer in the last 4 bytes 
+   * of an 8-byte array, big-endian 
+   */
+  encode(value) {
+    const buffer = new ArrayBuffer(8);
+    const view = new DataView(buffer);
+    view.setInt32(4, value, false); // big-endian
+    return new Uint8Array(buffer);
   }
+
+  decode(bytes) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return view.getInt32(4, false);
+  }
+}
   
   class RealEncoder extends KeyEncoder {
     /**
